@@ -12,6 +12,7 @@ import { showError, showSuccess } from "@/utils/toast";
 import { useMusicPlayer } from "@/context/MusicPlayerContext";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/Header";
+import { FunctionsHttpError } from '@supabase/supabase-js';
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -58,22 +59,24 @@ const Index = () => {
     setPlaylist(library);
   }, [library, setPlaylist]);
 
-  const getDetailedErrorMessage = (error: any): string => {
-    // Log the full error object to the browser console for detailed debugging
+  const getDetailedErrorMessage = async (error: any): Promise<string> => {
     console.error("Objeto de erro completo da Supabase Function:", error);
     
-    // Try to extract a user-friendly message
-    if (error?.context?.error?.error && typeof error.context.error.error === 'string') {
-      return error.context.error.error;
+    if (error instanceof FunctionsHttpError) {
+      try {
+        const errorBody = await error.context.json();
+        return errorBody.error || JSON.stringify(errorBody);
+      } catch (e) {
+        try {
+          const textError = await error.context.text();
+          return textError || error.message;
+        } catch (textE) {
+          return error.message;
+        }
+      }
     }
-    if (error?.context?.error && typeof error.context.error === 'string') {
-      return error.context.error;
-    }
-    if (error?.message) {
-      // The default message is often the generic one, but it's a good fallback
-      return error.message;
-    }
-    return "Ocorreu um erro desconhecido. Verifique o console para detalhes.";
+    
+    return error.message || "Ocorreu um erro desconhecido.";
   };
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -91,7 +94,8 @@ const Index = () => {
     setIsLoading(false);
 
     if (error) {
-      showError(`Erro ao buscar: ${getDetailedErrorMessage(error)}`);
+      const message = await getDetailedErrorMessage(error);
+      showError(`Erro ao buscar: ${message}`);
       return;
     }
 
@@ -117,7 +121,8 @@ const Index = () => {
     setDownloadingId(null);
 
     if (error) {
-      showError(`Erro ao adicionar música: ${getDetailedErrorMessage(error)}`);
+      const message = await getDetailedErrorMessage(error);
+      showError(`Erro ao adicionar música: ${message}`);
       return;
     }
       

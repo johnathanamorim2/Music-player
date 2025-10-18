@@ -61,30 +61,33 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
 }
 
 serve(async (req) => {
-  console.log(`\n--- [LOG] Nova requisição recebida: ${req.method} ---`);
   const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
 
   if (req.method === 'OPTIONS') {
-    console.log('[LOG] Tratando requisição OPTIONS.');
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    console.log('[LOG] Lendo variáveis de ambiente...');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('[FATAL] Variáveis de ambiente SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não encontradas.');
-      throw new Error('Erro de configuração no servidor.');
+    let supabase;
+    try {
+      console.log('[DIAGNOSTIC] Lendo variáveis de ambiente...');
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      
+      if (!supabaseUrl || !supabaseKey) {
+        console.error('[FATAL] Variáveis de ambiente SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não encontradas.');
+        throw new Error('Erro de configuração do servidor: Variáveis de ambiente ausentes.');
+      }
+      console.log('[DIAGNOSTIC] Variáveis de ambiente encontradas. Criando cliente Supabase...');
+      supabase = createClient(supabaseUrl, supabaseKey);
+      console.log('[DIAGNOSTIC] Cliente Supabase criado com sucesso.');
+    } catch (e) {
+      console.error('[FATAL] Falha ao inicializar o cliente Supabase:', e);
+      throw new Error(`Erro de inicialização do servidor: ${e.message}`);
     }
-    console.log('[LOG] Variáveis de ambiente carregadas.');
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    console.log('[LOG] Cliente Supabase criado.');
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('[ERROR] Cabeçalho de autorização ausente.');
       return new Response(JSON.stringify({ error: 'Não autorizado: Token ausente' }), { status: 401, headers: jsonHeaders });
     }
     
@@ -92,20 +95,15 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      console.error('[ERROR] Erro de autenticação:', authError?.message || 'Usuário não encontrado.');
       return new Response(JSON.stringify({ error: `Falha na autenticação: ${authError?.message}` }), { status: 401, headers: jsonHeaders });
     }
-    console.log(`[LOG] Usuário autenticado: ${user.id}`);
 
-    console.log('[LOG] Analisando corpo da requisição...');
     const body = await req.json();
-    console.log('[LOG] Corpo da requisição analisado:', body);
     const { action, query, videoId } = body;
 
     if (action === 'search') {
       if (!query) throw new Error('O parâmetro "query" é obrigatório para a busca');
       const results = await searchYouTube(query);
-      console.log('[LOG] Busca concluída com sucesso.');
       return new Response(JSON.stringify(results), { headers: jsonHeaders });
     } else if (action === 'download') {
       if (!videoId) throw new Error('O parâmetro "videoId" é obrigatório para o download');
@@ -121,16 +119,13 @@ serve(async (req) => {
         thumbnail_url: videoInfo.thumbnail, youtube_id: videoId, user_id: user.id,
       }).select().single();
       if (error) throw error;
-      console.log('[LOG] Download concluído com sucesso.');
       return new Response(JSON.stringify(song), { headers: jsonHeaders });
     }
 
-    console.error(`[ERROR] Ação inválida recebida: "${action}"`);
     return new Response(JSON.stringify({ error: 'Ação inválida' }), { status: 400, headers: jsonHeaders });
 
   } catch (error) {
-    console.error('--- [FATAL] Erro não tratado na função ---');
-    console.error(error.stack || error);
+    console.error('--- [FATAL] Erro não tratado na função ---', error);
     const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido no servidor.';
     return new Response(JSON.stringify({ error: errorMessage }), { status: 500, headers: jsonHeaders });
   }
