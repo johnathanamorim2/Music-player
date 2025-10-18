@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { stream } from "https://deno.land/x/yt_stream/mod.ts";
+// Importing directly from GitHub to bypass deno.land/x resolution issues
+import { stream } from "https://raw.githubusercontent.com/braz-dev/yt-stream/v1.0.5/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,7 +8,7 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  console.log("get-audio-stream function invoked with yt-stream.");
+  console.log("get-audio-stream function invoked with yt-stream from GitHub.");
 
   if (req.method === 'OPTIONS') {
     console.log("Handling OPTIONS request.");
