@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // @ts-ignore
-import play from 'https://esm.sh/play-dl@1.9.7';
+import { ytdl } from "https://deno.land/x/ytdl_core@v0.1.2/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,18 +22,17 @@ serve(async (req: Request) => {
     }
 
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const info = await ytdl.getInfo(videoUrl);
+    const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
     
-    const videoInfo = await play.video_info(videoUrl);
-    const audioFormats = videoInfo.format.filter((f: any) => f.mime_type?.includes('audio/'));
-    
-    if (!audioFormats || audioFormats.length === 0) {
-        return new Response(JSON.stringify({ error: 'No audio-only formats found' }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 404,
-        });
+    if (audioFormats.length === 0) {
+      return new Response(JSON.stringify({ error: 'No audio-only formats found' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 404,
+      });
     }
 
-    const bestAudio = audioFormats.sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0))[0];
+    const bestAudio = audioFormats.sort((a: any, b: any) => (b.audioBitrate || 0) - (a.audioBitrate || 0))[0];
 
     if (!bestAudio || !bestAudio.url) {
         return new Response(JSON.stringify({ error: 'Could not find a valid audio URL' }), {
@@ -48,7 +47,8 @@ serve(async (req: Request) => {
     });
   } catch (error) {
     console.error(error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: `Failed to process video: ${errorMessage}` }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
