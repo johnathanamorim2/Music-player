@@ -59,12 +59,18 @@ const Index = () => {
   }, [library, setPlaylist]);
 
   const getDetailedErrorMessage = (error: any): string => {
-    // The detailed message from our Edge Function is in error.context.error
-    if (error?.context?.error) {
+    console.error("Erro bruto da Supabase Function:", error);
+    
+    if (error?.context?.error?.error && typeof error.context.error.error === 'string') {
+      return error.context.error.error;
+    }
+    if (error?.context?.error && typeof error.context.error === 'string') {
       return error.context.error;
     }
-    // Fallback for other types of errors
-    return error.message || "Ocorreu um erro desconhecido.";
+    if (error?.message) {
+      return error.message;
+    }
+    return "Ocorreu um erro desconhecido.";
   };
 
   const handleSearch = async (e: React.FormEvent) => {
