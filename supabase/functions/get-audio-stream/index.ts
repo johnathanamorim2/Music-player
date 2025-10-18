@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import ytdl from "https://deno.land/x/ytdl@v1.2.0/mod.ts";
+// @ts-ignore
+import play from 'https://esm.sh/play-dl@1.9.7';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,7 +8,7 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  console.log("get-audio-stream function invoked with deno-ytdl v1.2.0.");
+  console.log("get-audio-stream function invoked with play-dl.");
 
   if (req.method === 'OPTIONS') {
     console.log("Handling OPTIONS request.");
@@ -27,29 +28,29 @@ serve(async (req: Request) => {
       });
     }
 
-    console.log(`Fetching audio stream for videoId: ${videoId}`);
+    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    console.log(`Fetching audio stream for URL: ${videoUrl}`);
     
-    const audioStream = ytdl(videoId, {
-      filter: "audioonly",
-      quality: "highestaudio",
+    const streamInfo = await play.stream(videoUrl, {
+        quality: 2, // 0 = lowest, 1 = low, 2 = high
     });
 
-    if (!audioStream) {
-        console.error("Could not get audio stream.");
+    if (!streamInfo || !streamInfo.stream) {
+        console.error("Could not get audio stream from play-dl.");
         return new Response(JSON.stringify({ error: 'Could not get audio stream' }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 500,
         });
     }
     
-    console.log(`Successfully got audio stream.`);
+    console.log(`Successfully got audio stream with type: ${streamInfo.type}`);
 
     const responseHeaders = new Headers(corsHeaders);
-    responseHeaders.set('Content-Type', 'audio/webm'); // Most common format for audioonly
+    responseHeaders.set('Content-Type', streamInfo.type);
     responseHeaders.set('Cache-Control', 'no-cache');
 
     console.log("Streaming audio back to client.");
-    return new Response(audioStream, {
+    return new Response(streamInfo.stream, {
       headers: responseHeaders,
       status: 200,
     });
