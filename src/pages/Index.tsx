@@ -47,7 +47,8 @@ const Index = () => {
 
     } catch (error: any) {
       console.error("Caught error during search:", error);
-      showError(`Erro ao buscar: ${error.message || 'Ocorreu um erro desconhecido'}`);
+      const errorMessage = error.context?.error || error.message || 'Ocorreu um erro desconhecido';
+      showError(`Erro ao buscar: ${errorMessage}`);
     } finally {
       setIsLoading(false);
       console.log("Search finished.");
@@ -79,23 +80,17 @@ const Index = () => {
     console.log("Fetching audio stream URL via proxy...");
 
     try {
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/get-audio-stream`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ videoId: song.id }),
+      const { data, error } = await supabase.functions.invoke('get-audio-stream', {
+        body: { videoId: song.id },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Proxy function returned an error:", errorData);
-        throw new Error(errorData.error || `Request failed with status ${response.status}`);
+      if (error) {
+        console.error("Supabase function invocation error (audio):", error);
+        throw error;
       }
 
       console.log("Successfully received audio URL response.");
-      const { audioUrl: directAudioUrl } = await response.json();
+      const { audioUrl: directAudioUrl } = data;
       
       if (!directAudioUrl) {
         throw new Error("Function did not return an audio URL.");
@@ -107,7 +102,8 @@ const Index = () => {
 
     } catch (error: any) {
       console.error("Caught error during audio fetch:", error);
-      showError(`Erro ao carregar áudio: ${error.message}`);
+      const errorMessage = error.context?.error || error.message || 'Ocorreu um erro desconhecido';
+      showError(`Erro ao carregar áudio: ${errorMessage}`);
       setCurrentSong(null);
     } finally {
       setIsSongLoading(false);

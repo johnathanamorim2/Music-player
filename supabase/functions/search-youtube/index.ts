@@ -5,14 +5,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Updated and expanded list of instances
 const INVIDIOUS_INSTANCES = [
+  'https://invidious.protokolla.fi',
+  'https://invidious.lunar.icu',
+  'https://inv.tux.pizza',
+  'https://invidious.slipfox.xyz',
+  'https://invidious.kavin.rocks',
   'https://yewtu.be',
-  'https://inv.us.projectsegfau.lt',
   'https://vid.puffyan.us',
-  'https://invidious.io.lol',
   'https://iv.ggtyler.dev',
-  'https://invidious.epicsite.xyz',
-  'https://invidious.projectsegfau.lt',
 ];
 
 function formatDuration(seconds: number): string {
@@ -38,13 +40,19 @@ serve(async (req: Request) => {
     console.log(`Searching for "${query}" using Invidious instances.`);
 
     for (const instance of INVIDIOUS_INSTANCES) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
       try {
         const searchUrl = `${instance}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
         console.log(`Trying instance: ${searchUrl}`);
         
         const response = await fetch(searchUrl, {
+          signal: controller.signal,
           headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           throw new Error(`Instance ${instance} returned status ${response.status}`);
@@ -67,11 +75,16 @@ serve(async (req: Request) => {
         });
 
       } catch (error) {
-        console.error(`Failed to fetch from ${instance}:`, error.message);
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          console.error(`Request to ${instance} timed out.`);
+        } else {
+          console.error(`Failed to fetch from ${instance}:`, error.message);
+        }
       }
     }
 
-    throw new Error('All Invidious instances failed to respond.');
+    throw new Error('All Invidious instances failed to respond or timed out.');
 
   } catch (error) {
     console.error("An error occurred in the search-youtube function:", error);
