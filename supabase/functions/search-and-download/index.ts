@@ -45,7 +45,8 @@ async function getHealthyInstances(): Promise<string[]> {
     return [
       'https://invidious.sethforprivacy.com',
       'https://yewtu.be', 
-      'https://inv.tux.pizza', 
+      'https://invidious.projectsegfau.lt', // Nova instância
+      'https://inv.riverside.rocks', // Nova instância
     ];
   }
 }
