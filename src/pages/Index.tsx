@@ -59,8 +59,10 @@ const Index = () => {
   }, [library, setPlaylist]);
 
   const getDetailedErrorMessage = (error: any): string => {
-    console.error("Erro bruto da Supabase Function:", error);
+    // Log the full error object to the browser console for detailed debugging
+    console.error("Objeto de erro completo da Supabase Function:", error);
     
+    // Try to extract a user-friendly message
     if (error?.context?.error?.error && typeof error.context.error.error === 'string') {
       return error.context.error.error;
     }
@@ -68,9 +70,10 @@ const Index = () => {
       return error.context.error;
     }
     if (error?.message) {
+      // The default message is often the generic one, but it's a good fallback
       return error.message;
     }
-    return "Ocorreu um erro desconhecido.";
+    return "Ocorreu um erro desconhecido. Verifique o console para detalhes.";
   };
 
   const handleSearch = async (e: React.FormEvent) => {

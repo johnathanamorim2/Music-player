@@ -15,25 +15,30 @@ interface SearchResult {
 }
 
 async function searchYouTube(query: string): Promise<SearchResult[]> {
-  console.log('Iniciando busca no YouTube por:', query);
+  console.log(`[LOG] Iniciando busca no YouTube por: "${query}"`);
   const invidiousInstances = [
     'https://invidious.kavin.rocks', 'https://vid.puffyan.us', 'https://iv.ggtyler.dev',
     'https://yewtu.be', 'https://invidious.projectsegfau.lt', 'https://invidious.protokolla.fi',
   ];
   let lastError: Error | null = null;
+
   for (const instance of invidiousInstances) {
+    const url = `${instance}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
     try {
-      console.log(`Tentando instância: ${instance}`);
+      console.log(`[LOG] Tentando instância: ${url}`);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
-      const response = await fetch(`${instance}/api/v1/search?q=${encodeURIComponent(query)}&type=video`, {
+      
+      const response = await fetch(url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
         signal: controller.signal
       });
       clearTimeout(timeoutId);
+
+      console.log(`[LOG] Resposta da instância ${instance}: Status ${response.status}`);
       if (response.ok) {
         const data = await response.json();
-        console.log(`Sucesso com ${instance}, ${data.length} resultados encontrados.`);
+        console.log(`[LOG] Sucesso com ${instance}, ${data.length} resultados encontrados.`);
         if (data && data.length > 0) {
           return data.slice(0, 12).map((video: any) => ({
             id: video.videoId,
@@ -44,42 +49,42 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
           }));
         }
       } else {
-        console.warn(`Instância ${instance} retornou status: ${response.status}`);
+        console.warn(`[WARN] Instância ${instance} retornou status não-OK: ${response.status}`);
       }
     } catch (err) {
       lastError = err as Error;
-      console.warn(`Falha na instância ${instance}:`, err instanceof Error ? err.message : 'Erro desconhecido');
+      console.warn(`[WARN] Falha na instância ${instance}:`, err instanceof Error ? err.message : 'Erro desconhecido');
     }
   }
-  console.error('Todas as instâncias falharam. Último erro:', lastError);
+  console.error('[ERROR] Todas as instâncias falharam. Último erro:', lastError);
   throw new Error(`Não foi possível buscar músicas. O serviço pode estar instável. (Detalhe: ${lastError?.message || 'Todos os provedores falharam'})`);
 }
 
 serve(async (req) => {
-  console.log('Função invocada. Método:', req.method);
+  console.log(`\n--- [LOG] Nova requisição recebida: ${req.method} ---`);
   const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
 
   if (req.method === 'OPTIONS') {
-    console.log('Tratando requisição OPTIONS.');
+    console.log('[LOG] Tratando requisição OPTIONS.');
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    console.log('Lendo variáveis de ambiente...');
+    console.log('[LOG] Lendo variáveis de ambiente...');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     if (!supabaseUrl || !supabaseKey) {
-      console.error('Variáveis de ambiente SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não encontradas.');
+      console.error('[FATAL] Variáveis de ambiente SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não encontradas.');
       throw new Error('Erro de configuração no servidor.');
     }
-    console.log('Variáveis de ambiente carregadas.');
+    console.log('[LOG] Variáveis de ambiente carregadas.');
 
     const supabase = createClient(supabaseUrl, supabaseKey);
-    console.log('Cliente Supabase criado.');
+    console.log('[LOG] Cliente Supabase criado.');
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('Cabeçalho de autorização ausente.');
+      console.error('[ERROR] Cabeçalho de autorização ausente.');
       return new Response(JSON.stringify({ error: 'Não autorizado: Token ausente' }), { status: 401, headers: jsonHeaders });
     }
     
@@ -87,20 +92,20 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      console.error('Erro de autenticação:', authError?.message || 'Usuário não encontrado.');
+      console.error('[ERROR] Erro de autenticação:', authError?.message || 'Usuário não encontrado.');
       return new Response(JSON.stringify({ error: `Falha na autenticação: ${authError?.message}` }), { status: 401, headers: jsonHeaders });
     }
-    console.log('Usuário autenticado:', user.id);
+    console.log(`[LOG] Usuário autenticado: ${user.id}`);
 
-    console.log('Analisando corpo da requisição...');
+    console.log('[LOG] Analisando corpo da requisição...');
     const body = await req.json();
+    console.log('[LOG] Corpo da requisição analisado:', body);
     const { action, query, videoId } = body;
-    console.log('Corpo da requisição analisado. Ação:', action);
 
     if (action === 'search') {
       if (!query) throw new Error('O parâmetro "query" é obrigatório para a busca');
       const results = await searchYouTube(query);
-      console.log('Busca concluída com sucesso.');
+      console.log('[LOG] Busca concluída com sucesso.');
       return new Response(JSON.stringify(results), { headers: jsonHeaders });
     } else if (action === 'download') {
       if (!videoId) throw new Error('O parâmetro "videoId" é obrigatório para o download');
@@ -116,15 +121,16 @@ serve(async (req) => {
         thumbnail_url: videoInfo.thumbnail, youtube_id: videoId, user_id: user.id,
       }).select().single();
       if (error) throw error;
-      console.log('Download concluído com sucesso.');
+      console.log('[LOG] Download concluído com sucesso.');
       return new Response(JSON.stringify(song), { headers: jsonHeaders });
     }
 
-    console.error('Ação inválida recebida:', action);
+    console.error(`[ERROR] Ação inválida recebida: "${action}"`);
     return new Response(JSON.stringify({ error: 'Ação inválida' }), { status: 400, headers: jsonHeaders });
 
   } catch (error) {
-    console.error('!!! Erro não tratado na função:', error);
+    console.error('--- [FATAL] Erro não tratado na função ---');
+    console.error(error.stack || error);
     const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido no servidor.';
     return new Response(JSON.stringify({ error: errorMessage }), { status: 500, headers: jsonHeaders });
   }
