@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Song } from "@/types";
+import { useAuth } from "@/hooks/useAuth"; // Importando useAuth
 
 interface MusicPlayerContextType {
   currentSong: Song | null;
@@ -16,12 +17,35 @@ const MusicPlayerContext = createContext<MusicPlayerContextType | undefined>(
 );
 
 export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
+  const { user, loading: authLoading } = useAuth(); // Usando useAuth
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [playlist, setPlaylist] = useState<Song[]>([]);
+  const [lastUserId, setLastUserId] = useState<string | null | undefined>(authLoading ? undefined : user?.id);
+
+  const closePlayer = () => {
+    setCurrentSong(null);
+    setPlaylist([]);
+  };
+
+  // Efeito para resetar o player quando o usuário muda
+  useEffect(() => {
+    if (authLoading) return;
+
+    const currentUserId = user?.id || null;
+
+    // Se o ID do usuário mudou (incluindo de logado para deslogado, ou de UserA para UserB)
+    if (lastUserId !== undefined && lastUserId !== currentUserId) {
+      console.log(`[MusicPlayer] User changed from ${lastUserId} to ${currentUserId}. Resetting player state.`);
+      closePlayer();
+    }
+    
+    setLastUserId(currentUserId);
+  }, [user, authLoading, lastUserId]);
+
 
   const playNext = () => {
     if (playlist.length === 0 || !currentSong) return;
-    const currentIndex = playlist.findIndex((s) => s.id === currentSong.id);
+    const currentIndex = playlist.findIndex((s) => s.db_id === currentSong.db_id);
     if (currentIndex === -1) {
       setCurrentSong(playlist[0]);
       return;
@@ -32,7 +56,7 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
 
   const playPrevious = () => {
     if (playlist.length === 0 || !currentSong) return;
-    const currentIndex = playlist.findIndex((s) => s.id === currentSong.id);
+    const currentIndex = playlist.findIndex((s) => s.db_id === currentSong.db_id);
     if (currentIndex === -1) {
       setCurrentSong(playlist[0]);
       return;
@@ -41,9 +65,6 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     setCurrentSong(playlist[previousIndex]);
   };
 
-  const closePlayer = () => {
-    setCurrentSong(null);
-  };
 
   return (
     <MusicPlayerContext.Provider
