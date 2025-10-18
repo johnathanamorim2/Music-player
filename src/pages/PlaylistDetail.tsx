@@ -1,4 +1,3 @@
-import { Header } from "@/components/Header";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { Loader2, ListMusic, ArrowLeft, Trash2 } from "lucide-react";
 import { useParams, Link, useNavigate } from "react-router-dom";
@@ -10,7 +9,6 @@ import { Song } from "@/types";
 import { MusicCard } from "@/components/MusicCard";
 import { showError, showSuccess } from "@/utils/toast";
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
-import { MainNavigation } from "@/components/MainNavigation"; // Importando
 
 interface PlaylistDetailData {
   name: string;
@@ -133,55 +131,47 @@ const PlaylistDetail = () => {
   };
 
   return (
-    <div className="bg-gray-900 text-white min-h-screen">
-      <div className="container mx-auto px-4 py-8 pb-32">
-        <Header />
-        
-        {/* Navegação Principal */}
-        <MainNavigation currentTab="library" onTabChange={() => {}} />
-
-        <Link to="/playlists" className="flex items-center text-gray-400 hover:text-purple-400 mb-6 transition-colors">
-          <ArrowLeft size={20} className="mr-2" /> Voltar para Playlists
-        </Link>
-        
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-4xl font-bold text-purple-400">{playlist.name}</h2>
-          <Button 
-            variant="destructive" 
-            onClick={handleDeletePlaylist} 
-            disabled={isLoading}
-            className="bg-red-600 hover:bg-red-500"
-          >
-            <Trash2 size={20} className="mr-2" /> Deletar Playlist
-          </Button>
-        </div>
-        
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
-          </div>
-        ) : playlist.songs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-gray-500 h-64">
-            <ListMusic size={48} />
-            <p className="mt-4 text-lg">Esta playlist está vazia.</p>
-            <p className="text-sm">Adicione músicas da sua biblioteca na página inicial.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-            {playlist.songs.map((song) => (
-              <MusicCard
-                key={song.db_id}
-                song={song}
-                onPlay={handlePlaySong}
-                onDelete={handleDeleteSongFromPlaylist}
-                variant="playlist"
-              />
-            ))}
-          </div>
-        )}
+    <>
+      <Link to="/playlists" className="flex items-center text-gray-400 hover:text-purple-400 mb-6 transition-colors">
+        <ArrowLeft size={20} className="mr-2" /> Voltar para Playlists
+      </Link>
+      
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-4xl font-bold text-purple-400">{playlist.name}</h2>
+        <Button 
+          variant="destructive" 
+          onClick={handleDeletePlaylist} 
+          disabled={isLoading}
+          className="bg-red-600 hover:bg-red-500"
+        >
+          <Trash2 size={20} className="mr-2" /> Deletar Playlist
+        </Button>
       </div>
-      <MusicPlayer />
-    </div>
+      
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
+        </div>
+      ) : playlist.songs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center text-gray-500 h-64">
+          <ListMusic size={48} />
+          <p className="mt-4 text-lg">Esta playlist está vazia.</p>
+          <p className="text-sm">Adicione músicas da sua biblioteca na página inicial.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+          {playlist.songs.map((song) => (
+            <MusicCard
+              key={song.db_id}
+              song={song}
+              onPlay={handlePlaySong}
+              onDelete={handleDeleteSongFromPlaylist}
+              variant="playlist"
+            />
+          ))}
+        </div>
+      )}
+    </>
   );
 };
 

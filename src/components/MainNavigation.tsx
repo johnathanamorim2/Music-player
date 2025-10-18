@@ -10,7 +10,7 @@ interface MainNavigationProps {
 }
 
 const navItems = [
-  { name: "Início", href: "/", icon: Home }, // Adicionado Início
+  { name: "Início", href: "/", icon: Home },
   { name: "Favoritos", href: "/favorites", icon: Heart },
   { name: "Playlists", href: "/playlists", icon: ListMusic },
 ];
@@ -21,7 +21,7 @@ export const MainNavigation = ({ currentTab, onTabChange }: MainNavigationProps)
 
   return (
     <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-8">
-      {/* Abas de Busca/Biblioteca (Apenas na página Index) */}
+      {/* Abas de Busca/Biblioteca (Movidas para AppLayout, mas mantemos a estrutura de Tabs aqui para o Index) */}
       {isIndexPage && (
         <Tabs value={currentTab} onValueChange={(value) => onTabChange(value as "search" | "library")}>
           <TabsList className="grid w-full grid-cols-2 max-w-md bg-gray-800 text-gray-400">
@@ -36,9 +36,6 @@ export const MainNavigation = ({ currentTab, onTabChange }: MainNavigationProps)
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.href;
-          
-          // Se não for a página Index, garantimos que o link de Início seja exibido
-          // e os outros links também, para facilitar a navegação entre as páginas principais.
           
           return (
             <Link key={item.name} to={item.href}>

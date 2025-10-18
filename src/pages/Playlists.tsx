@@ -1,4 +1,3 @@
-import { Header } from "@/components/Header";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { Loader2, ListMusic, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,6 @@ import { PlaylistCard } from "@/components/PlaylistCard";
 import { CreatePlaylistDialog } from "@/components/CreatePlaylistDialog";
 import { useState } from "react";
 import { showError, showSuccess } from "@/utils/toast";
-import { MainNavigation } from "@/components/MainNavigation"; // Importando
 
 // Hook para buscar playlists (com contagem de músicas)
 const useUserPlaylists = (userId: string | undefined) => {
@@ -70,49 +68,41 @@ const Playlists = () => {
   };
 
   return (
-    <div className="bg-gray-900 text-white min-h-screen">
-      <div className="container mx-auto px-4 py-8 pb-32">
-        <Header />
-        
-        {/* Navegação Principal */}
-        <MainNavigation currentTab="/playlists" onTabChange={() => {}} />
-
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold text-purple-400">Minhas Playlists</h2>
-          <Button 
-            onClick={() => setIsCreatePlaylistDialogOpen(true)} 
-            className="bg-purple-600 hover:bg-purple-500"
-          >
-            <Plus size={20} className="mr-2" /> Criar Playlist
-          </Button>
-        </div>
-        
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
-          </div>
-        ) : playlists.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-gray-500 h-64">
-            <ListMusic size={48} />
-            <p className="mt-4 text-lg">Você ainda não tem playlists.</p>
-            <p className="text-sm">Crie sua primeira playlist!</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {playlists.map((playlist) => (
-              <PlaylistCard key={playlist.id} playlist={playlist} />
-            ))}
-          </div>
-        )}
+    <>
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-3xl font-bold text-purple-400">Minhas Playlists</h2>
+        <Button 
+          onClick={() => setIsCreatePlaylistDialogOpen(true)} 
+          className="bg-purple-600 hover:bg-purple-500"
+        >
+          <Plus size={20} className="mr-2" /> Criar Playlist
+        </Button>
       </div>
-      <MusicPlayer />
+      
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
+        </div>
+      ) : playlists.length === 0 ? (
+        <div className="flex flex-col items-center justify-center text-gray-500 h-64">
+          <ListMusic size={48} />
+          <p className="mt-4 text-lg">Você ainda não tem playlists.</p>
+          <p className="text-sm">Crie sua primeira playlist!</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {playlists.map((playlist) => (
+            <PlaylistCard key={playlist.id} playlist={playlist} />
+          ))}
+        </div>
+      )}
       
       <CreatePlaylistDialog
         isOpen={isCreatePlaylistDialogOpen}
         onClose={() => setIsCreatePlaylistDialogOpen(false)}
         onCreate={(name) => handleCreatePlaylist(name)}
       />
-    </div>
+    </>
   );
 };
 

@@ -1,4 +1,3 @@
-import { Header } from "@/components/Header";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { Loader2, Heart } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,7 +10,6 @@ import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
 import { AddToPlaylistDialog } from "@/components/AddToPlaylistDialog";
 import { useState } from "react";
 import { CreatePlaylistDialog } from "@/components/CreatePlaylistDialog";
-import { MainNavigation } from "@/components/MainNavigation"; // Importando
 
 // Hook para buscar favoritos detalhados
 const useDetailedFavorites = (userId: string | undefined) => {
@@ -213,63 +211,35 @@ const Favorites = () => {
   };
 
   return (
-    <div className="bg-gray-900 text-white min-h-screen">
-      <div className="container mx-auto px-4 py-8 pb-32">
-        <Header />
-        
-        {/* Navegação Principal */}
-        <MainNavigation currentTab="/favorites" onTabChange={() => {}} />
-
-        <h2 className="text-3xl font-bold mb-8 text-purple-400">Minhas Músicas Favoritas</h2>
-        
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
-          </div>
-        ) : favoriteSongs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-gray-500 h-64">
-            <Heart size={48} />
-            <p className="mt-4 text-lg">Você ainda não tem músicas favoritas.</p>
-            <p className="text-sm">Adicione músicas da sua biblioteca aos favoritos.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-            {favoriteSongs.map((song) => (
-              <MusicCard
-                key={song.db_id}
-                song={song}
-                onPlay={handlePlaySong}
-                onToggleFavorite={handleToggleFavorite}
-                onAddToPlaylist={handleOpenAddToPlaylist}
-                isFavorite={favoriteIds.has(song.db_id!)}
-                variant="library"
-              />
-            ))}
-          </div>
-        )}
-      </div>
-      <MusicPlayer />
-
-      {/* Diálogo de Adicionar à Playlist */}
-      {songToAddToPlaylist?.db_id && (
-        <AddToPlaylistDialog
-          songDbId={songToAddToPlaylist.db_id}
-          isOpen={isAddToPlaylistDialogOpen}
-          onClose={() => setIsAddToPlaylistDialogOpen(false)}
-          playlists={playlists}
-          onAddToPlaylist={handleAddToPlaylist}
-          onOpenCreateNewPlaylist={handleOpenCreateNewPlaylist}
-        />
+    <>
+      <h2 className="text-3xl font-bold mb-8 text-purple-400">Minhas Músicas Favoritas</h2>
+      
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
+        </div>
+      ) : favoriteSongs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center text-gray-500 h-64">
+          <Heart size={48} />
+          <p className="mt-4 text-lg">Você ainda não tem músicas favoritas.</p>
+          <p className="text-sm">Adicione músicas da sua biblioteca aos favoritos.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+          {favoriteSongs.map((song) => (
+            <MusicCard
+              key={song.db_id}
+              song={song}
+              onPlay={handlePlaySong}
+              onToggleFavorite={handleToggleFavorite}
+              onAddToPlaylist={handleOpenAddToPlaylist}
+              isFavorite={favoriteIds.has(song.db_id!)}
+              variant="library"
+            />
+          ))}
+        </div>
       )}
-
-      {/* Diálogo de Criar Nova Playlist */}
-      <CreatePlaylistDialog
-        isOpen={isCreatePlaylistDialogOpen}
-        onClose={() => setIsCreatePlaylistDialogOpen(false)}
-        onCreate={(name) => handleCreateNewPlaylist(name, songToAddToPlaylist?.db_id)}
-        initialSongId={songToAddToPlaylist?.db_id}
-      />
-    </div>
+    </>
   );
 };
 

@@ -12,6 +12,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Favorites from "./pages/Favorites";
 import Playlists from "./pages/Playlists";
 import PlaylistDetail from "./pages/PlaylistDetail";
+import { AppLayout } from "./components/AppLayout"; // Importando o novo layout
 
 const queryClient = new QueryClient();
 
@@ -27,12 +28,14 @@ const App = () => (
               {/* Rota de autenticação */}
               <Route path="/auth" element={<Auth />} />
               
-              {/* Rotas protegidas */}
+              {/* Rotas protegidas usam AppLayout */}
               <Route element={<ProtectedRoute />}>
-                <Route path="/" element={<Index />} />
-                <Route path="/favorites" element={<Favorites />} />
-                <Route path="/playlists" element={<Playlists />} />
-                <Route path="/playlist/:id" element={<PlaylistDetail />} />
+                <Route element={<AppLayout />}>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/favorites" element={<Favorites />} />
+                  <Route path="/playlists" element={<Playlists />} />
+                  <Route path="/playlist/:id" element={<PlaylistDetail />} />
+                </Route>
               </Route>
               
               {/* 404 */}
