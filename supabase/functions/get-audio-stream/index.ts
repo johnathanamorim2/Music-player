@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // @ts-ignore
-import ytdl from 'https://esm.sh/ytdl-core@4.11.5';
+import play from 'https://esm.sh/play-dl@1.9.7';
 import { Readable } from "https://deno.land/std@0.168.0/node/stream.ts";
 
 const corsHeaders = {
@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  console.log("get-audio-stream function invoked with ytdl-core and stream conversion.");
+  console.log("get-audio-stream function invoked with play-dl.");
 
   if (req.method === 'OPTIONS') {
     console.log("Handling OPTIONS request.");
@@ -22,29 +22,30 @@ serve(async (req: Request) => {
     console.log(`Received videoId for streaming: ${videoId}`);
 
     if (!videoId) {
-      console.error("Error: videoId is required.");
-      return new Response(JSON.stringify({ error: 'videoId is required' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      });
+      throw new Error('videoId is required');
     }
 
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    console.log(`Fetching audio stream for URL: ${videoUrl}`);
+    console.log(`Fetching video info for URL: ${videoUrl}`);
     
-    // ytdl-core returns a Node.js-style Readable stream
-    const nodeStream = ytdl(videoUrl, {
-      filter: 'audioonly',
-      quality: 'highestaudio'
+    const info = await play.video_info(videoUrl);
+    
+    console.log("Streaming best audio format...");
+    const streamData = await play.stream_from_info(info, {
+        quality: 2, // 0: low, 1: medium, 2: high
+        type: 'audio'
     });
 
-    // Convert the Node.js stream to a Web API ReadableStream, which is what Deno's Response expects.
+    const nodeStream = streamData.stream;
     const webStream = Readable.toWeb(nodeStream as any);
     
-    console.log(`Successfully created stream.`);
+    console.log(`Successfully created stream of type ${streamData.type}.`);
 
     const responseHeaders = new Headers(corsHeaders);
-    responseHeaders.set('Content-Type', 'audio/webm');
+    responseHeaders.set('Content-Type', streamData.type);
+    if (streamData.content_length) {
+        responseHeaders.set('Content-Length', streamData.content_length);
+    }
     responseHeaders.set('Cache-Control', 'no-cache');
 
     console.log("Streaming audio back to client.");
@@ -54,8 +55,7 @@ serve(async (req: Request) => {
     });
 
   } catch (error) {
-    console.error("An error occurred in the get-audio-stream function:");
-    console.error(error);
+    console.error("An error occurred in the get-audio-stream function:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`Error message: ${errorMessage}`);
     
