@@ -1,6 +1,5 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-// @ts-ignore
-import ytdl from "https://esm.sh/deno-ytdl@1.2.0";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { stream } from "https://deno.land/x/yt_stream/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,7 +7,7 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  console.log("get-audio-stream function invoked with deno-ytdl via esm.sh.");
+  console.log("get-audio-stream function invoked with yt-stream.");
 
   if (req.method === 'OPTIONS') {
     console.log("Handling OPTIONS request.");
@@ -30,13 +29,13 @@ serve(async (req: Request) => {
 
     console.log(`Fetching audio stream for videoId: ${videoId}`);
     
-    const audioStream = ytdl(videoId, {
-      filter: "audioonly",
-      quality: "highestaudio",
+    const audioStreamData = await stream(videoId, {
+        quality: "high",
+        type: "audio",
     });
 
-    if (!audioStream) {
-        console.error("Could not get audio stream.");
+    if (!audioStreamData || !audioStreamData.stream) {
+        console.error("Could not get audio stream from yt-stream.");
         return new Response(JSON.stringify({ error: 'Could not get audio stream' }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 500,
@@ -46,11 +45,14 @@ serve(async (req: Request) => {
     console.log(`Successfully got audio stream.`);
 
     const responseHeaders = new Headers(corsHeaders);
-    responseHeaders.set('Content-Type', 'audio/webm');
+    responseHeaders.set('Content-Type', audioStreamData.type);
+    if (audioStreamData.contentLength) {
+      responseHeaders.set('Content-Length', audioStreamData.contentLength.toString());
+    }
     responseHeaders.set('Cache-Control', 'no-cache');
 
     console.log("Streaming audio back to client.");
-    return new Response(audioStream, {
+    return new Response(audioStreamData.stream, {
       headers: responseHeaders,
       status: 200,
     });
