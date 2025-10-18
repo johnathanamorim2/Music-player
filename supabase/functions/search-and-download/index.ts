@@ -34,7 +34,7 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
       console.log(`Trying instance: ${instance}`);
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // Increased timeout
       
       const response = await fetch(
         `${instance}/api/v1/search?q=${encodeURIComponent(query)}&type=video`,
@@ -72,10 +72,12 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
   }
   
   console.error('All Invidious instances failed. Last error:', lastError);
-  throw new Error('Não foi possível buscar músicas no momento. Tente novamente mais tarde.');
+  throw new Error(`Não foi possível buscar músicas. O serviço pode estar instável. (Detalhe: ${lastError?.message || 'Todos os provedores falharam'})`);
 }
 
 serve(async (req) => {
+  const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -87,14 +89,14 @@ serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: jsonHeaders });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: jsonHeaders });
     }
 
     const { action, query, videoId } = await req.json();
@@ -102,7 +104,7 @@ serve(async (req) => {
     if (action === 'search') {
       if (!query) throw new Error('Query is required for search');
       const results = await searchYouTube(query);
-      return new Response(JSON.stringify(results), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify(results), { headers: jsonHeaders });
     
     } else if (action === 'download') {
       if (!videoId) throw new Error('videoId is required for download');
@@ -115,7 +117,7 @@ serve(async (req) => {
         .maybeSingle();
 
       if (existingSong) {
-        return new Response(JSON.stringify({ error: 'Song already in library' }), { status: 409, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: 'Song already in library' }), { status: 409, headers: jsonHeaders });
       }
 
       const searchResults = await searchYouTube(videoId);
@@ -139,13 +141,13 @@ serve(async (req) => {
 
       if (error) throw error;
 
-      return new Response(JSON.stringify(song), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify(song), { headers: jsonHeaders });
     }
 
-    return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: jsonHeaders });
 
   } catch (error) {
     console.error('Error in function:', error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: jsonHeaders });
   }
 });

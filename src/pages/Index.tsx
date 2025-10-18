@@ -59,13 +59,12 @@ const Index = () => {
   }, [library, setPlaylist]);
 
   const getDetailedErrorMessage = (error: any): string => {
+    // The detailed message from our Edge Function is in error.context.error
     if (error?.context?.error) {
       return error.context.error;
     }
-    if (error?.message) {
-      return error.message;
-    }
-    return "Ocorreu um erro desconhecido.";
+    // Fallback for other types of errors
+    return error.message || "Ocorreu um erro desconhecido.";
   };
 
   const handleSearch = async (e: React.FormEvent) => {
