@@ -6,7 +6,7 @@ import { Song } from "@/types";
 import { SearchResults } from "@/components/SearchResults";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { supabase } from "@/integrations/supabase/client";
-import { showError } from "@/utils/toast";
+import { showError, showLoading, dismissToast } from "@/utils/toast";
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -14,6 +14,8 @@ const Index = () => {
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSongLoading, setIsSongLoading] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,13 +29,8 @@ const Index = () => {
         body: { query: searchTerm },
       });
 
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
-        setSearchResults(data);
-      }
+      if (error) throw error;
+      if (data) setSearchResults(data);
 
     } catch (error: any) {
       console.error("Error searching for music:", error);
@@ -43,9 +40,43 @@ const Index = () => {
     }
   };
 
-  const handlePlaySong = (song: Song) => {
+  const handlePlaySong = async (song: Song) => {
+    if (currentSong?.id === song.id) {
+      setIsPlaying(!isPlaying);
+      return;
+    }
+
+    setIsSongLoading(true);
     setCurrentSong(song);
-    setIsPlaying(true);
+    setAudioUrl(null);
+    setIsPlaying(false);
+    const toastId = showLoading("Carregando áudio...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke('get-audio-stream', {
+        body: { videoId: song.id },
+      });
+
+      if (error) throw error;
+
+      if (data && data.audioUrl) {
+        setAudioUrl(data.audioUrl);
+        setIsPlaying(true);
+      } else {
+        throw new Error("Não foi possível obter o link do áudio.");
+      }
+    } catch (error: any) {
+      console.error("Error getting audio stream:", error);
+      showError(`Erro ao carregar áudio: ${error.message}`);
+      setCurrentSong(null);
+    } finally {
+      setIsSongLoading(false);
+      dismissToast(toastId);
+    }
+  };
+
+  const handlePlayPause = (playing: boolean) => {
+    setIsPlaying(playing);
   };
 
   return (
@@ -74,7 +105,13 @@ const Index = () => {
           <SearchResults results={searchResults} onPlaySong={handlePlaySong} isLoading={isLoading} />
         </main>
       </div>
-      <MusicPlayer currentSong={currentSong} isPlaying={isPlaying} />
+      <MusicPlayer
+        currentSong={currentSong}
+        isPlaying={isPlaying}
+        audioUrl={audioUrl}
+        isSongLoading={isSongLoading}
+        onPlayPause={handlePlayPause}
+      />
     </div>
   );
 };
