@@ -16,7 +16,6 @@ interface SearchResult {
 
 async function searchYouTube(query: string): Promise<SearchResult[]> {
   console.log(`[LOG] Iniciando busca no YouTube por: "${query}"`);
-  // Lista agressivamente curada de instâncias com maior estabilidade reportada
   const invidiousInstances = [
     'https://vid.puffyan.us',
     'https://iv.ggtyler.dev',
@@ -44,9 +43,23 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
 
       console.log(`[LOG] Resposta da instância ${instance}: Status ${response.status}`);
       if (response.ok) {
-        const data = await response.json();
+        let data;
+        try {
+          // Tenta clonar a resposta para ler o texto sem consumir o corpo
+          const responseClone = response.clone();
+          const text = await responseClone.text();
+          if (text.trim().startsWith('<')) {
+            throw new Error('A resposta é HTML, não JSON.');
+          }
+          data = await response.json();
+        } catch (jsonError) {
+          console.warn(`[WARN] Instância ${instance} retornou uma resposta inválida (não-JSON). Pulando. Erro: ${jsonError.message}`);
+          lastError = new Error(`A instância ${instance} retornou dados inválidos.`);
+          continue; // Pula para a próxima instância
+        }
+
         console.log(`[LOG] Sucesso com ${instance}, ${data.length} resultados encontrados.`);
-        if (data && data.length > 0) {
+        if (data && Array.isArray(data) && data.length > 0) {
           return data.slice(0, 12).map((video: any) => ({
             id: video.videoId,
             title: video.title,
@@ -57,6 +70,7 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
         }
       } else {
         console.warn(`[WARN] Instância ${instance} retornou status não-OK: ${response.status}`);
+        lastError = new Error(`A instância ${instance} retornou status ${response.status}`);
       }
     } catch (err) {
       lastError = err as Error;
