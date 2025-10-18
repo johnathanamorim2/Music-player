@@ -1,75 +1,74 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-// @ts-ignore
-import play from "npm:play-dl@1.9.7";
-import { Readable } from "node:stream";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req: Request) => {
-  console.log("get-audio-stream function invoked with authentication.");
+const INVIDIOUS_INSTANCES = [
+  'https://yewtu.be',
+  'https://inv.us.projectsegfau.lt',
+  'https://vid.puffyan.us',
+  'https://invidious.io.lol',
+  'https://iv.ggtyler.dev',
+  'https://invidious.epicsite.xyz',
+  'https://invidious.projectsegfau.lt',
+];
 
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    console.log("Handling OPTIONS request.");
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Authenticate with YouTube using the cookie from Supabase secrets
-    const youtubeCookie = Deno.env.get('YOUTUBE_COOKIE');
-    if (youtubeCookie) {
-      console.log("Found YouTube cookie secret. Setting token for play-dl.");
-      await play.setToken({
-        youtube: {
-          cookie: youtubeCookie,
-        },
-      });
-    } else {
-      console.warn("YOUTUBE_COOKIE secret not found. Streaming may fail for age-restricted or bot-protected content.");
-    }
-
-    console.log("Parsing request body...");
     const { videoId } = await req.json();
-    console.log(`Received videoId for streaming: ${videoId}`);
-
     if (!videoId) {
       throw new Error('videoId is required');
     }
 
-    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    console.log(`Fetching stream for URL: ${videoUrl}`);
-    
-    const streamData = await play.stream(videoUrl, {
-        quality: 2, // 0: low, 1: medium, 2: high
-    });
+    console.log(`Fetching audio stream for "${videoId}" using Invidious instances.`);
 
-    const nodeStream = streamData.stream;
-    // Convert Node.js stream to a Web API ReadableStream that Deno can serve
-    const webStream = Readable.toWeb(nodeStream as any);
-    
-    console.log(`Successfully created stream of type ${streamData.type}.`);
+    for (const instance of INVIDIOUS_INSTANCES) {
+      try {
+        const videoInfoUrl = `${instance}/api/v1/videos/${videoId}`;
+        console.log(`Trying instance: ${videoInfoUrl}`);
 
-    const responseHeaders = new Headers(corsHeaders);
-    responseHeaders.set('Content-Type', streamData.type);
-    if (streamData.content_length) {
-        responseHeaders.set('Content-Length', String(streamData.content_length));
+        const response = await fetch(videoInfoUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Instance ${instance} returned status ${response.status}`);
+        }
+
+        const videoInfo = await response.json();
+        
+        const audioStream = videoInfo.adaptiveFormats?.find((f: any) => f.itag === '140') 
+                         || videoInfo.adaptiveFormats?.filter((f: any) => f.type.startsWith('audio/'))
+                                                      .sort((a: any, b: any) => b.bitrate - a.bitrate)[0];
+
+        if (!audioStream || !audioStream.url) {
+          throw new Error('No suitable audio stream found in video info.');
+        }
+
+        const audioUrl = audioStream.url;
+        console.log(`Found audio stream URL from ${instance}. Sending URL to client.`);
+
+        return new Response(JSON.stringify({ audioUrl }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+
+      } catch (error) {
+        console.error(`Failed to fetch from ${instance}:`, error.message);
+      }
     }
-    responseHeaders.set('Cache-Control', 'no-cache');
 
-    console.log("Streaming audio back to client.");
-    return new Response(webStream, {
-      headers: responseHeaders,
-      status: 200,
-    });
+    throw new Error('All Invidious instances failed to provide an audio stream.');
 
   } catch (error) {
     console.error("An error occurred in the get-audio-stream function:", error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`Error message: ${errorMessage}`);
-    
-    return new Response(JSON.stringify({ error: `Failed to process video: ${errorMessage}` }), {
+    return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });

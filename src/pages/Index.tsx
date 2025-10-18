@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,15 +22,6 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSongLoading, setIsSongLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [activeAudioUrl, setActiveAudioUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (activeAudioUrl) {
-        URL.revokeObjectURL(activeAudioUrl);
-      }
-    };
-  }, [activeAudioUrl]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,13 +74,9 @@ const Index = () => {
     setIsSongLoading(true);
     setCurrentSong(song);
     setAudioUrl(null);
-    if (activeAudioUrl) {
-      URL.revokeObjectURL(activeAudioUrl);
-      setActiveAudioUrl(null);
-    }
     setIsPlaying(false);
     const toastId = showLoading("Carregando áudio...");
-    console.log("Fetching audio stream via proxy...");
+    console.log("Fetching audio stream URL via proxy...");
 
     try {
       const response = await fetch(`${SUPABASE_URL}/functions/v1/get-audio-stream`, {
@@ -107,13 +94,15 @@ const Index = () => {
         throw new Error(errorData.error || `Request failed with status ${response.status}`);
       }
 
-      console.log("Successfully received audio stream response.");
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      console.log("Created blob URL for audio:", objectUrl);
+      console.log("Successfully received audio URL response.");
+      const { audioUrl: directAudioUrl } = await response.json();
       
-      setActiveAudioUrl(objectUrl);
-      setAudioUrl(objectUrl);
+      if (!directAudioUrl) {
+        throw new Error("Function did not return an audio URL.");
+      }
+      
+      console.log("Setting direct audio URL for playback.");
+      setAudioUrl(directAudioUrl);
       setIsPlaying(true);
 
     } catch (error: any) {
