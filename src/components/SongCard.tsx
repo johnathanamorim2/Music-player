@@ -1,0 +1,32 @@
+import { Song } from "@/types";
+import { Card, CardContent } from "./ui/card";
+import { Play } from "lucide-react";
+
+interface SongCardProps {
+  song: Song;
+  onPlay: (song: Song) => void;
+}
+
+export const SongCard = ({ song, onPlay }: SongCardProps) => {
+  return (
+    <Card
+      className="bg-gray-800 border-transparent text-white overflow-hidden group relative cursor-pointer hover:bg-gray-700 transition-colors"
+      onClick={() => onPlay(song)}
+    >
+      <CardContent className="p-4">
+        <div className="aspect-square relative mb-4">
+          <img
+            src={song.thumbnail}
+            alt={song.title}
+            className="w-full h-full object-cover rounded-md"
+          />
+          <div className="absolute bottom-2 right-2 bg-purple-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-y-0 translate-y-2">
+            <Play size={24} className="ml-0.5" />
+          </div>
+        </div>
+        <p className="font-semibold truncate">{song.title}</p>
+        <p className="text-sm text-gray-400 truncate">{song.artist}</p>
+      </CardContent>
+    </Card>
+  );
+};
