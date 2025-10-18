@@ -75,7 +75,7 @@ const Playlists = () => {
         <Header />
         
         {/* Navegação Principal */}
-        <MainNavigation currentTab="library" onTabChange={() => {}} />
+        <MainNavigation currentTab="/playlists" onTabChange={() => {}} />
 
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-bold text-purple-400">Minhas Playlists</h2>

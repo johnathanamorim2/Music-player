@@ -1,6 +1,6 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link, useLocation } from "react-router-dom";
-import { Heart, ListMusic } from "lucide-react";
+import { Heart, ListMusic, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -10,6 +10,7 @@ interface MainNavigationProps {
 }
 
 const navItems = [
+  { name: "Início", href: "/", icon: Home }, // Adicionado Início
   { name: "Favoritos", href: "/favorites", icon: Heart },
   { name: "Playlists", href: "/playlists", icon: ListMusic },
 ];
@@ -35,6 +36,9 @@ export const MainNavigation = ({ currentTab, onTabChange }: MainNavigationProps)
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.href;
+          
+          // Se não for a página Index, garantimos que o link de Início seja exibido
+          // e os outros links também, para facilitar a navegação entre as páginas principais.
           
           return (
             <Link key={item.name} to={item.href}>
