@@ -1,6 +1,6 @@
 import { Button } from './ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { LogOut } from 'lucide-react';
+import { LogOut, Music } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 export const Header = () => {
@@ -12,10 +12,16 @@ export const Header = () => {
 
   return (
     <header className="flex items-center justify-between mb-12 pt-4">
-      {/* Título principal, agora sempre visível */}
-      <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600 mr-auto">
-        Music Finder
-      </h1>
+      {/* Título principal com o ícone de logo */}
+      <div className="flex items-center mr-auto">
+        <Music 
+          size={32} 
+          className="mr-3 text-purple-400" 
+        />
+        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
+          Music Finder
+        </h1>
+      </div>
       
       {user && (
         <div className="flex items-center gap-4">
