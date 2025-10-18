@@ -1,5 +1,5 @@
 import { MusicPlayer } from "@/components/MusicPlayer";
-import { Loader2, ListMusic, ArrowLeft, Trash2 } from "lucide-react";
+import { Loader2, ListMusic, ArrowLeft, Trash2, Play } from "lucide-react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -86,6 +86,15 @@ const PlaylistDetail = () => {
     setPlaylist(playlist.songs);
     setCurrentSong(song);
   };
+  
+  const handlePlayPlaylist = () => {
+    if (playlist.songs.length === 0) {
+      showError("A playlist está vazia.");
+      return;
+    }
+    setPlaylist(playlist.songs);
+    setCurrentSong(playlist.songs[0]);
+  };
 
   const handleDeleteSongFromPlaylist = async (song: Song) => {
     if (!playlistId || !song.db_id) return;
@@ -136,16 +145,25 @@ const PlaylistDetail = () => {
         <ArrowLeft size={20} className="mr-2" /> Voltar para Playlists
       </Link>
       
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
         <h2 className="text-4xl font-bold text-purple-400">{playlist.name}</h2>
-        <Button 
-          variant="destructive" 
-          onClick={handleDeletePlaylist} 
-          disabled={isLoading}
-          className="bg-red-600 hover:bg-red-500"
-        >
-          <Trash2 size={20} className="mr-2" /> Deletar Playlist
-        </Button>
+        <div className="flex gap-4">
+          <Button 
+            onClick={handlePlayPlaylist} 
+            disabled={isLoading || playlist.songs.length === 0}
+            className="bg-green-600 hover:bg-green-500"
+          >
+            <Play size={20} className="mr-2" /> Reproduzir Playlist
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={handleDeletePlaylist} 
+            disabled={isLoading}
+            className="bg-red-600 hover:bg-red-500"
+          >
+            <Trash2 size={20} className="mr-2" /> Deletar Playlist
+          </Button>
+        </div>
       </div>
       
       {isLoading ? (
