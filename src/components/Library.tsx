@@ -1,6 +1,6 @@
 import { Song } from "@/types";
-import { SongCard } from "./SongCard";
-import { Play, Music } from "lucide-react";
+import { MusicCard } from "./MusicCard";
+import { Music } from "lucide-react";
 
 interface LibraryProps {
   songs: Song[];
@@ -23,11 +23,11 @@ export const Library = ({ songs, onPlaySong }: LibraryProps) => {
       <h2 className="text-2xl font-bold mb-6">Minha Biblioteca</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
         {songs.map((song) => (
-          <SongCard
+          <MusicCard
             key={song.id}
             song={song}
-            onAction={onPlaySong}
-            actionIcon={<Play size={24} className="ml-0.5" />}
+            onPlay={onPlaySong}
+            variant="library"
           />
         ))}
       </div>

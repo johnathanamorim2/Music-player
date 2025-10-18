@@ -3,5 +3,5 @@ export interface Song {
   title: string;
   artist: string;
   thumbnail: string;
-  duration: string;
+  duration: number;
 }

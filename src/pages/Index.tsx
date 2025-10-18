@@ -10,9 +10,6 @@ import { Library } from "@/components/Library";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
 
-const SUPABASE_URL = "https://zxbztnfskxrlnpgzofff.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4Ynp0bmZza3hybG5wZ3pvZmZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NzA5NTIsImV4cCI6MjA3NjM0Njk1Mn0.JAB6U9dPDyQGt4f6G0sQKZ0MRQbSiIifoxieuRLBRoc";
-
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
@@ -22,6 +19,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSongLoading, setIsSongLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,13 +53,18 @@ const Index = () => {
     }
   };
 
-  const handleDownloadSong = (song: Song) => {
+  const handleDownloadSong = async (song: Song) => {
     if (library.some(s => s.id === song.id)) {
       showError("Essa música já está na sua biblioteca.");
       return;
     }
+    if (downloadingId) return;
+
+    setDownloadingId(song.id);
+    await new Promise(resolve => setTimeout(resolve, 1000));
     setLibrary(prevLibrary => [...prevLibrary, song]);
     showSuccess(`"${song.title}" foi adicionada à sua biblioteca!`);
+    setDownloadingId(null);
   };
 
   const handlePlaySong = async (song: Song) => {
@@ -145,7 +148,12 @@ const Index = () => {
               <TabsTrigger value="library">Minha Biblioteca</TabsTrigger>
             </TabsList>
             <TabsContent value="search">
-              <SearchResults results={searchResults} onDownloadSong={handleDownloadSong} isLoading={isLoading} />
+              <SearchResults 
+                results={searchResults} 
+                onDownloadSong={handleDownloadSong} 
+                isLoading={isLoading}
+                downloadingId={downloadingId}
+              />
             </TabsContent>
             <TabsContent value="library">
               <Library songs={library} onPlaySong={handlePlaySong} />

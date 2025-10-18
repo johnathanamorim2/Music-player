@@ -21,15 +21,6 @@ const INVIDIOUS_INSTANCES = [
   'https://invidious.nerdvpn.de'
 ];
 
-function formatDuration(seconds: number): string {
-  if (isNaN(seconds) || seconds < 0) {
-    return "0:00";
-  }
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-}
-
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -69,7 +60,7 @@ serve(async (req: Request) => {
           title: video.title,
           artist: video.author,
           thumbnail: video.videoThumbnails?.find((t: any) => t.quality === 'mqdefault')?.url || video.videoThumbnails?.[0]?.url,
-          duration: formatDuration(video.lengthSeconds),
+          duration: video.lengthSeconds,
         }));
 
         console.log(`Successfully found ${formattedResults.length} results from ${instance}`);
