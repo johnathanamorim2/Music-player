@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Ytdl } from "https://deno.land/x/ytdl_deno@v0.1.1/mod.ts";
+import ytdl from "https://deno.land/x/ytdl@v1.2.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  console.log("get-audio-stream function invoked with ytdl-deno.");
+  console.log("get-audio-stream function invoked with deno-ytdl v1.2.0.");
 
   if (req.method === 'OPTIONS') {
     console.log("Handling OPTIONS request.");
@@ -28,13 +28,13 @@ serve(async (req: Request) => {
     }
 
     console.log(`Fetching audio stream for videoId: ${videoId}`);
-    const streamResult = await Ytdl.stream(videoId, {
-        filter: "audio"
+    
+    const audioStream = ytdl(videoId, {
+      filter: "audioonly",
+      quality: "highestaudio",
     });
 
-    const { stream, mimeType } = streamResult;
-
-    if (!stream) {
+    if (!audioStream) {
         console.error("Could not get audio stream.");
         return new Response(JSON.stringify({ error: 'Could not get audio stream' }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -42,14 +42,14 @@ serve(async (req: Request) => {
         });
     }
     
-    console.log(`Successfully got audio stream with mimeType: ${mimeType}`);
+    console.log(`Successfully got audio stream.`);
 
     const responseHeaders = new Headers(corsHeaders);
-    responseHeaders.set('Content-Type', mimeType);
+    responseHeaders.set('Content-Type', 'audio/webm'); // Most common format for audioonly
     responseHeaders.set('Cache-Control', 'no-cache');
 
     console.log("Streaming audio back to client.");
-    return new Response(stream, {
+    return new Response(audioStream, {
       headers: responseHeaders,
       status: 200,
     });
