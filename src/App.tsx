@@ -27,7 +27,7 @@ const App = () => (
               {/* Rota de autenticação */}
               <Route path="/auth" element={<Auth />} />
               
-              {/* Rotas protegidas */}
+              {/* Rotas protegidas (usando ProtectedRoute como layout) */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Index />} />
                 <Route path="/favorites" element={<Favorites />} />

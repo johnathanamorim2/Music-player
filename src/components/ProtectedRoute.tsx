@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
+import { SidebarLayout } from './SidebarLayout';
 
 const ProtectedRoute = () => {
   const { session, loading } = useAuth();
@@ -17,7 +18,8 @@ const ProtectedRoute = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  return <Outlet />;
+  // Se autenticado, renderiza o layout com a sidebar
+  return <SidebarLayout />;
 };
 
 export default ProtectedRoute;

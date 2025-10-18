@@ -11,10 +11,12 @@ export const Header = () => {
   };
 
   return (
-    <header className="flex items-center justify-between mb-12">
-      <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
+    <header className="flex items-center justify-end mb-12 pt-4">
+      {/* Título visível apenas em telas pequenas, pois a Sidebar tem o título principal */}
+      <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600 md:hidden mr-auto">
         Music Finder
       </h1>
+      
       {user && (
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-300 hidden sm:block">
