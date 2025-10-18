@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  console.log("get-audio-stream function invoked.");
+  console.log("get-audio-stream function invoked for streaming.");
 
   if (req.method === 'OPTIONS') {
     console.log("Handling OPTIONS request.");
@@ -18,7 +18,7 @@ serve(async (req: Request) => {
   try {
     console.log("Parsing request body...");
     const { videoId } = await req.json();
-    console.log(`Received videoId: ${videoId}`);
+    console.log(`Received videoId for streaming: ${videoId}`);
 
     if (!videoId) {
       console.error("Error: videoId is required.");
@@ -37,7 +37,6 @@ serve(async (req: Request) => {
 
     console.log("Filtering for audio-only formats...");
     const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
-    console.log(`Found ${audioFormats.length} audio-only formats.`);
     
     if (audioFormats.length === 0) {
       console.error("No audio-only formats found for this video.");
@@ -47,23 +46,30 @@ serve(async (req: Request) => {
       });
     }
 
-    console.log("Sorting audio formats by bitrate...");
-    const bestAudio = audioFormats.sort((a: any, b: any) => (b.audioBitrate || 0) - (a.audioBitrate || 0))[0];
-
-    if (!bestAudio || !bestAudio.url) {
-        console.error("Could not find a valid audio URL after sorting.");
-        return new Response(JSON.stringify({ error: 'Could not find a valid audio URL' }), {
+    console.log("Finding best audio format...");
+    const bestAudio = audioFormats.find((f: any) => f.mimeType.includes('audio/webm')) || audioFormats[0];
+    if (!bestAudio) {
+        console.error("Could not find a valid audio format.");
+        return new Response(JSON.stringify({ error: 'Could not find a valid audio format' }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 404,
         });
     }
 
-    console.log(`Found best audio URL. Sending successful response.`);
+    console.log("Downloading audio stream from info...");
+    const audioStream = await ytdl.downloadFromInfo(info, { format: bestAudio });
+    console.log("Successfully created audio stream.");
 
-    return new Response(JSON.stringify({ audioUrl: bestAudio.url }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const responseHeaders = new Headers(corsHeaders);
+    responseHeaders.set('Content-Type', bestAudio.mimeType);
+    responseHeaders.set('Cache-Control', 'no-cache');
+
+    console.log("Streaming audio back to client.");
+    return new Response(audioStream, {
+      headers: responseHeaders,
       status: 200,
     });
+
   } catch (error) {
     console.error("An error occurred in the get-audio-stream function:");
     console.error(error);

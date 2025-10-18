@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +10,9 @@ import { Library } from "@/components/Library";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
 
+const SUPABASE_URL = "https://zxbztnfskxrlnpgzofff.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4Ynp0bmZza3hybG5wZ3pvZmZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NzA5NTIsImV4cCI6MjA3NjM0Njk1Mn0.JAB6U9dPDyQGt4f6G0sQKZ0MRQbSiIifoxieuRLBRoc";
+
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
@@ -19,6 +22,15 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSongLoading, setIsSongLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [activeAudioUrl, setActiveAudioUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (activeAudioUrl) {
+        URL.revokeObjectURL(activeAudioUrl);
+      }
+    };
+  }, [activeAudioUrl]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,30 +83,39 @@ const Index = () => {
     setIsSongLoading(true);
     setCurrentSong(song);
     setAudioUrl(null);
+    if (activeAudioUrl) {
+      URL.revokeObjectURL(activeAudioUrl);
+      setActiveAudioUrl(null);
+    }
     setIsPlaying(false);
     const toastId = showLoading("Carregando áudio...");
-    console.log("Fetching audio stream...");
+    console.log("Fetching audio stream via proxy...");
 
     try {
-      const { data, error } = await supabase.functions.invoke('get-audio-stream', {
-        body: { videoId: song.id },
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/get-audio-stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ videoId: song.id }),
       });
 
-      if (error) {
-        console.error("Supabase function invocation error (get-audio-stream):", error);
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Proxy function returned an error:", errorData);
+        throw new Error(errorData.error || `Request failed with status ${response.status}`);
       }
 
-      console.log("Audio stream function response data:", data);
+      console.log("Successfully received audio stream response.");
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      console.log("Created blob URL for audio:", objectUrl);
+      
+      setActiveAudioUrl(objectUrl);
+      setAudioUrl(objectUrl);
+      setIsPlaying(true);
 
-      if (data && data.audioUrl) {
-        console.log("Received audio URL. Setting state.");
-        setAudioUrl(data.audioUrl);
-        setIsPlaying(true);
-      } else {
-        console.error("Audio URL not found in response data:", data);
-        throw new Error("Não foi possível obter o link do áudio.");
-      }
     } catch (error: any) {
       console.error("Caught error during audio fetch:", error);
       showError(`Erro ao carregar áudio: ${error.message}`);
