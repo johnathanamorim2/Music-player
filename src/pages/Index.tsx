@@ -10,14 +10,49 @@ import { Library } from "@/components/Library";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import { useMusicPlayer } from "@/context/MusicPlayerContext";
+import { useAuth } from "@/hooks/useAuth";
+import { Header } from "@/components/Header";
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [library, setLibrary] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLibraryLoading, setIsLibraryLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  
   const { setCurrentSong, setPlaylist } = useMusicPlayer();
+  const { session } = useAuth();
+
+  useEffect(() => {
+    const fetchLibrary = async () => {
+      if (!session) return;
+      setIsLibraryLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('songs')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const formattedLibrary: Song[] = data.map(song => ({
+          id: song.youtube_id,
+          title: song.title,
+          artist: song.artist,
+          thumbnail: song.thumbnail_url,
+          duration: song.duration,
+          db_id: song.id,
+        }));
+        setLibrary(formattedLibrary);
+      } catch (error) {
+        showError("Não foi possível carregar sua biblioteca.");
+      } finally {
+        setIsLibraryLoading(false);
+      }
+    };
+    fetchLibrary();
+  }, [session]);
 
   useEffect(() => {
     setPlaylist(library);
@@ -25,39 +60,60 @@ const Index = () => {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchTerm.trim() || isLoading) return;
+    if (!searchTerm.trim() || isLoading || !session) return;
 
     setIsLoading(true);
     setSearchResults([]);
 
     try {
-      const { data, error } = await supabase.functions.invoke('search-youtube', {
-        body: { query: searchTerm },
+      const { data, error } = await supabase.functions.invoke('search-and-download', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { action: 'search', query: searchTerm },
       });
 
-      if (error) throw error;
-      if (data) setSearchResults(data);
+      if (error) throw new Error(error.message);
+      if (data) setSearchResults(data.map((s: any) => ({...s, id: s.id})));
 
     } catch (error: any) {
-      const errorMessage = error.context?.error?.message || error.message || 'Ocorreu um erro desconhecido';
-      showError(`Erro ao buscar: ${errorMessage}`);
+      showError(`Erro ao buscar: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDownloadSong = async (song: Song) => {
-    if (library.some(s => s.id === song.id)) {
+    if (library.some(s => s.id === song.id) || downloadingId) {
       showError("Essa música já está na sua biblioteca.");
       return;
     }
-    if (downloadingId) return;
+    if (!session) return;
 
     setDownloadingId(song.id);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setLibrary(prevLibrary => [...prevLibrary, song]);
-    showSuccess(`"${song.title}" foi adicionada à sua biblioteca!`);
-    setDownloadingId(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('search-and-download', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { action: 'download', videoId: song.id },
+      });
+
+      if (error) throw new Error(error.message);
+      
+      if (data) {
+        const newLibrarySong: Song = {
+          id: data.youtube_id,
+          title: data.title,
+          artist: data.artist,
+          thumbnail: data.thumbnail_url,
+          duration: data.duration,
+          db_id: data.id,
+        };
+        setLibrary(prev => [newLibrarySong, ...prev]);
+        showSuccess(`"${song.title}" foi adicionada à sua biblioteca!`);
+      }
+    } catch (error: any) {
+      showError(`Erro ao adicionar música: ${error.message}`);
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   const handlePlaySong = (song: Song) => {
@@ -68,26 +124,22 @@ const Index = () => {
   return (
     <div className="bg-gray-900 text-white min-h-screen">
       <div className="container mx-auto px-4 py-8 pb-32">
-        <header className="flex flex-col items-center mb-12">
-          <h1 className="text-4xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-            Music Finder
-          </h1>
-          <form onSubmit={handleSearch} className="w-full max-w-lg flex gap-2">
-            <Input
-              type="text"
-              placeholder="Digite o nome da música ou artista..."
-              className="bg-gray-800 border-gray-700 focus:ring-purple-500 focus:border-purple-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              disabled={isLoading}
-            />
-            <Button type="submit" className="bg-purple-600 hover:bg-purple-500" disabled={isLoading}>
-              {isLoading ? <Loader2 className="animate-spin" size={20} /> : <Search size={20} />}
-            </Button>
-          </form>
-        </header>
-
-        <main>
+        <Header />
+        <form onSubmit={handleSearch} className="w-full max-w-lg flex gap-2 mx-auto">
+          <Input
+            type="text"
+            placeholder="Digite o nome da música ou artista..."
+            className="bg-gray-800 border-gray-700 focus:ring-purple-500 focus:border-purple-500"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            disabled={isLoading}
+          />
+          <Button type="submit" className="bg-purple-600 hover:bg-purple-500" disabled={isLoading}>
+            {isLoading ? <Loader2 className="animate-spin" size={20} /> : <Search size={20} />}
+          </Button>
+        </form>
+        
+        <main className="mt-12">
           <Tabs defaultValue="search" className="w-full">
             <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8 bg-gray-800 text-gray-400">
               <TabsTrigger value="search">Buscar</TabsTrigger>
@@ -102,7 +154,13 @@ const Index = () => {
               />
             </TabsContent>
             <TabsContent value="library">
-              <Library songs={library} onPlaySong={handlePlaySong} />
+              {isLibraryLoading ? (
+                <div className="flex justify-center items-center h-64">
+                  <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
+                </div>
+              ) : (
+                <Library songs={library} onPlaySong={handlePlaySong} />
+              )}
             </TabsContent>
           </Tabs>
         </main>
