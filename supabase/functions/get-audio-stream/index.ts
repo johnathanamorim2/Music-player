@@ -7,12 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Initialize the library once outside the handler for performance.
-// This can take a moment on the first run.
-const youtube = await Innertube.create();
-
 serve(async (req: Request) => {
-  console.log("get-audio-stream function invoked with youtubei.js.");
+  console.log("get-audio-stream function invoked with youtubei.js (re-init on each call).");
 
   if (req.method === 'OPTIONS') {
     console.log("Handling OPTIONS request.");
@@ -20,6 +16,9 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Initialize the library inside the handler to ensure a fresh state for every request.
+    const youtube = await Innertube.create();
+    
     console.log("Parsing request body...");
     const { videoId } = await req.json();
     console.log(`Received videoId for streaming: ${videoId}`);
@@ -30,7 +29,6 @@ serve(async (req: Request) => {
 
     console.log(`Fetching audio stream for videoId: ${videoId}`);
     
-    // youtubei.js returns a Web API ReadableStream directly, which is perfect for Deno.
     const stream = await youtube.download(videoId, {
       type: 'audio',
       quality: 'best',
