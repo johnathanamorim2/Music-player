@@ -20,8 +20,8 @@ interface MusicPlayerContextType {
   playNext: () => void;
   playPrevious: () => void;
   closePlayer: () => void;
-  isShuffling: boolean; // Novo
-  toggleShuffle: () => void; // Novo
+  isShuffling: boolean;
+  toggleShuffle: () => void;
 }
 
 const MusicPlayerContext = createContext<MusicPlayerContextType | undefined>(
@@ -30,10 +30,10 @@ const MusicPlayerContext = createContext<MusicPlayerContextType | undefined>(
 
 export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
-  const [originalPlaylist, setOriginalPlaylist] = useState<Song[]>([]); // Lista original
+  const [originalPlaylist, setOriginalPlaylist] = useState<Song[]>([]); // Lista original (ordenada)
   const [playlist, setShuffledPlaylist] = useState<Song[]>([]); // Lista atual (embaralhada ou não)
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
-  const [isShuffling, setIsShuffling] = useState(false); // Novo estado de shuffle
+  const [isShuffling, setIsShuffling] = useState(false);
   const [lastUserId, setLastUserId] = useState<string | null | undefined>(authLoading ? undefined : user?.id);
 
   const closePlayer = () => {
@@ -69,20 +69,14 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   // Efeito para re-embaralhar ou reverter a playlist quando isShuffling muda
   useEffect(() => {
     if (isShuffling) {
+      // Re-embaralha a lista original
       setShuffledPlaylist(shuffleArray(originalPlaylist));
     } else {
+      // Restaura a lista original
       setShuffledPlaylist(originalPlaylist);
     }
-    // Se a música atual não estiver na nova lista (o que pode acontecer se a lista for re-embaralhada),
-    // tentamos encontrar a música original na nova lista para manter a reprodução.
-    if (currentSong) {
-        const found = playlist.find(s => s.db_id === currentSong.db_id);
-        if (!found) {
-            // Se a música atual não for encontrada (improvável se a lista for a mesma), 
-            // ou se a lista foi re-embaralhada, garantimos que a referência é válida.
-            // Não precisamos mudar o currentSong, apenas a playlist.
-        }
-    }
+    // Não precisamos verificar currentSong aqui, pois ele mantém a referência.
+    // A navegação (playNext/playPrevious) usará a nova ordem da lista 'playlist'.
   }, [isShuffling, originalPlaylist]);
 
 
@@ -92,22 +86,31 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
 
   const playNext = () => {
     if (playlist.length === 0 || !currentSong) return;
+    
+    // Encontra o índice da música atual na lista ATUAL (embaralhada ou não)
     const currentIndex = playlist.findIndex((s) => s.db_id === currentSong.db_id);
+    
     if (currentIndex === -1) {
+      // Se a música atual não for encontrada (ex: foi deletada), começa do início
       setCurrentSong(playlist[0]);
       return;
     }
+    
     const nextIndex = (currentIndex + 1) % playlist.length;
     setCurrentSong(playlist[nextIndex]);
   };
 
   const playPrevious = () => {
     if (playlist.length === 0 || !currentSong) return;
+    
+    // Encontra o índice da música atual na lista ATUAL (embaralhada ou não)
     const currentIndex = playlist.findIndex((s) => s.db_id === currentSong.db_id);
+    
     if (currentIndex === -1) {
       setCurrentSong(playlist[0]);
       return;
     }
+    
     const previousIndex = (currentIndex - 1 + playlist.length) % playlist.length;
     setCurrentSong(playlist[previousIndex]);
   };
