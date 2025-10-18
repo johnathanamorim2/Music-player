@@ -17,6 +17,7 @@ import { AddToPlaylistDialog } from "@/components/AddToPlaylistDialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CreatePlaylistDialog } from "@/components/CreatePlaylistDialog";
 import { MainNavigation } from "@/components/MainNavigation";
+import { useOfflineAudio } from "@/hooks/useOfflineAudio"; // Importando useOfflineAudio
 
 // --- Hooks de Dados (Reutilizados do Index) ---
 
@@ -116,6 +117,7 @@ export const AppLayout = () => {
   const { setCurrentSong, setPlaylist } = useMusicPlayer();
   const { session, user } = useAuth();
   const queryClient = useQueryClient();
+  const { cacheAudio, removeCachedAudio, isCaching } = useOfflineAudio(); // Usando hook de cache
 
   const userId = user?.id;
 
@@ -123,6 +125,30 @@ export const AppLayout = () => {
   const { data: library = [], isLoading: isLibraryLoading } = useUserLibrary(userId);
   const { data: favoriteIds } = useUserFavorites(userId);
   const { data: playlists } = useUserPlaylists(userId);
+
+  // Estado para rastrear músicas em cache (usando db_id)
+  const [offlineIds, setOfflineIds] = useState<Set<string>>(new Set());
+  const [cachingId, setCachingId] = useState<string | null>(null);
+
+  // Verifica o cache ao carregar a biblioteca
+  useEffect(() => {
+    const checkCache = async () => {
+      if (!('caches' in window)) return;
+      const cache = await caches.open('music-finder-audio-cache-v1');
+      const cachedRequests = await cache.keys();
+      const cachedUrls = new Set(cachedRequests.map(req => req.url));
+      
+      const newOfflineIds = new Set<string>();
+      library.forEach(song => {
+        if (song.audio_url && cachedUrls.has(song.audio_url)) {
+          if (song.db_id) newOfflineIds.add(song.db_id);
+        }
+      });
+      setOfflineIds(newOfflineIds);
+    };
+    checkCache();
+  }, [library]);
+
 
   useEffect(() => {
     // Se estiver na página inicial, atualiza a playlist do player com a biblioteca
@@ -223,6 +249,10 @@ export const AppLayout = () => {
   const handleDeleteSong = async (song: Song) => {
     if (!song.db_id) return;
     
+    // 1. Remover do cache offline
+    await removeCachedAudio(song);
+
+    // 2. Remover do DB
     const { error } = await supabase
       .from('songs')
       .delete()
@@ -278,6 +308,34 @@ export const AppLayout = () => {
     setPlaylist(library);
     setCurrentSong(song);
   };
+
+  // --- Lógica de Cache Offline ---
+  const handleToggleOffline = async (song: Song) => {
+    if (!song.db_id || !song.audio_url) return;
+
+    const isCurrentlyOffline = offlineIds.has(song.db_id);
+
+    if (isCurrentlyOffline) {
+      await removeCachedAudio(song);
+      setOfflineIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(song.db_id!);
+        return newSet;
+      });
+    } else {
+      setCachingId(song.db_id);
+      await cacheAudio(song);
+      setCachingId(null);
+      
+      // Se o cache foi bem-sucedido, atualiza o estado
+      const cache = await caches.open('music-finder-audio-cache-v1');
+      const response = await cache.match(song.audio_url);
+      if (response) {
+        setOfflineIds(prev => new Set(prev).add(song.db_id!));
+      }
+    }
+  };
+
 
   // --- Lógica de Playlists ---
 
@@ -405,7 +463,10 @@ export const AppLayout = () => {
                     onDeleteSong={handleDeleteSong}
                     onToggleFavorite={handleToggleFavorite}
                     onAddToPlaylist={handleOpenAddToPlaylist}
+                    onToggleOffline={handleToggleOffline} // Passando a função
                     favoriteIds={favoriteIds}
+                    offlineIds={offlineIds} // Passando o estado
+                    cachingId={cachingId} // Passando o estado de caching
                   />
                 )}
               </TabsContent>

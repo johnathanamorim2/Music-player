@@ -8,10 +8,23 @@ interface LibraryProps {
   onDeleteSong: (song: Song) => void;
   onToggleFavorite: (song: Song) => void;
   onAddToPlaylist: (song: Song) => void;
+  onToggleOffline: (song: Song) => void; // Novo prop
   favoriteIds: Set<string>;
+  offlineIds: Set<string>; // Novo prop
+  cachingId: string | null; // Novo prop
 }
 
-export const Library = ({ songs, onPlaySong, onDeleteSong, onToggleFavorite, onAddToPlaylist, favoriteIds }: LibraryProps) => {
+export const Library = ({ 
+  songs, 
+  onPlaySong, 
+  onDeleteSong, 
+  onToggleFavorite, 
+  onAddToPlaylist, 
+  onToggleOffline,
+  favoriteIds,
+  offlineIds,
+  cachingId,
+}: LibraryProps) => {
   if (songs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-gray-500 h-64">
@@ -34,7 +47,10 @@ export const Library = ({ songs, onPlaySong, onDeleteSong, onToggleFavorite, onA
             onDelete={onDeleteSong}
             onToggleFavorite={onToggleFavorite}
             onAddToPlaylist={onAddToPlaylist}
+            onToggleOffline={onToggleOffline} // Passando a função
             isFavorite={favoriteIds.has(song.db_id!)}
+            isOffline={offlineIds.has(song.db_id!)} // Passando o estado offline
+            isCaching={song.db_id === cachingId} // Passando o estado de caching
             variant="library"
           />
         ))}

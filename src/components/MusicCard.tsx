@@ -1,4 +1,4 @@
-import { Play, Download, Loader2, Heart, ListMusic, Trash2 } from "lucide-react";
+import { Play, Download, Loader2, Heart, ListMusic, Trash2, CloudDownload, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Song } from "@/types";
@@ -11,8 +11,11 @@ interface MusicCardProps {
   onDelete?: (song: Song) => void;
   onToggleFavorite?: (song: Song) => void;
   onAddToPlaylist?: (song: Song) => void;
+  onToggleOffline?: (song: Song) => void; // Novo prop para cache offline
   isDownloading?: boolean;
   isFavorite?: boolean;
+  isOffline?: boolean; // Novo prop para indicar se está em cache
+  isCaching?: boolean; // Novo prop para indicar se está cacheando
   variant: "search" | "library" | "playlist";
 }
 
@@ -23,8 +26,11 @@ export const MusicCard = ({
   onDelete,
   onToggleFavorite,
   onAddToPlaylist,
+  onToggleOffline,
   isDownloading,
   isFavorite = false,
+  isOffline = false,
+  isCaching = false,
   variant,
 }: MusicCardProps) => {
   const { title, artist, thumbnail, duration } = song;
@@ -49,10 +55,36 @@ export const MusicCard = ({
     : <Play size={24} className="ml-0.5" />;
 
   const renderLibraryActions = () => {
-    // Ações para Library (Favoritar, Adicionar à Playlist, Deletar da Biblioteca)
+    // Ações para Library (Favoritar, Adicionar à Playlist, Deletar da Biblioteca, Offline)
     if (variant === 'library' || variant === 'favorites') {
       return (
         <>
+          {/* Botão de Cache Offline */}
+          {onToggleOffline && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  onClick={(e) => { e.stopPropagation(); onToggleOffline(song); }}
+                  className={`w-8 h-8 rounded-full ${isOffline ? 'text-green-400 hover:bg-gray-700' : 'text-gray-400 hover:bg-gray-700'}`}
+                  disabled={isCaching}
+                >
+                  {isCaching ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : isOffline ? (
+                    <CheckCircle size={16} fill="currentColor" />
+                  ) : (
+                    <CloudDownload size={16} />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isCaching ? "Baixando..." : isOffline ? "Disponível Offline" : "Baixar para Offline"}
+              </TooltipContent>
+            </Tooltip>
+          )}
+
           {onToggleFavorite && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -150,7 +182,7 @@ export const MusicCard = ({
             </button>
           )}
           
-          {(variant === 'library' || variant === 'playlist') && (
+          {(variant === 'library' || variant === 'playlist' || variant === 'favorites') && (
             <div className="absolute top-2 right-2 flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               {renderLibraryActions()}
             </div>

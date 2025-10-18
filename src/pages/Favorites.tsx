@@ -1,4 +1,3 @@
-import { MusicPlayer } from "@/components/MusicPlayer";
 import { Loader2, Heart } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,8 +7,9 @@ import { MusicCard } from "@/components/MusicCard";
 import { showError, showSuccess } from "@/utils/toast";
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
 import { AddToPlaylistDialog } from "@/components/AddToPlaylistDialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CreatePlaylistDialog } from "@/components/CreatePlaylistDialog";
+import { useOfflineAudio } from "@/hooks/useOfflineAudio";
 
 // Hook para buscar favoritos detalhados
 const useDetailedFavorites = (userId: string | undefined) => {
@@ -86,6 +86,7 @@ const Favorites = () => {
   const userId = user?.id;
   const queryClient = useQueryClient();
   const { setCurrentSong, setPlaylist } = useMusicPlayer();
+  const { cacheAudio, removeCachedAudio, isCaching } = useOfflineAudio();
 
   const { data: favoriteSongs = [], isLoading } = useDetailedFavorites(userId);
   const { data: playlists } = useUserPlaylists(userId);
@@ -94,6 +95,30 @@ const Favorites = () => {
   const [isAddToPlaylistDialogOpen, setIsAddToPlaylistDialogOpen] = useState(false);
   const [isCreatePlaylistDialogOpen, setIsCreatePlaylistDialogOpen] = useState(false);
   const [songToAddToPlaylist, setSongToAddToPlaylist] = useState<Song | null>(null);
+  
+  // Estado de Cache
+  const [offlineIds, setOfflineIds] = useState<Set<string>>(new Set());
+  const [cachingId, setCachingId] = useState<string | null>(null);
+
+  // Verifica o cache ao carregar os favoritos
+  useEffect(() => {
+    const checkCache = async () => {
+      if (!('caches' in window)) return;
+      const cache = await caches.open('music-finder-audio-cache-v1');
+      const cachedRequests = await cache.keys();
+      const cachedUrls = new Set(cachedRequests.map(req => req.url));
+      
+      const newOfflineIds = new Set<string>();
+      favoriteSongs.forEach(song => {
+        if (song.audio_url && cachedUrls.has(song.audio_url)) {
+          if (song.db_id) newOfflineIds.add(song.db_id);
+        }
+      });
+      setOfflineIds(newOfflineIds);
+    };
+    checkCache();
+  }, [favoriteSongs]);
+
 
   const favoriteIds = new Set(favoriteSongs.map(s => s.db_id!));
 
@@ -122,6 +147,33 @@ const Favorites = () => {
   const handlePlaySong = (song: Song) => {
     setPlaylist(favoriteSongs);
     setCurrentSong(song);
+  };
+
+  // --- Lógica de Cache Offline ---
+  const handleToggleOffline = async (song: Song) => {
+    if (!song.db_id || !song.audio_url) return;
+
+    const isCurrentlyOffline = offlineIds.has(song.db_id);
+
+    if (isCurrentlyOffline) {
+      await removeCachedAudio(song);
+      setOfflineIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(song.db_id!);
+        return newSet;
+      });
+    } else {
+      setCachingId(song.db_id);
+      await cacheAudio(song);
+      setCachingId(null);
+      
+      // Se o cache foi bem-sucedido, atualiza o estado
+      const cache = await caches.open('music-finder-audio-cache-v1');
+      const response = await cache.match(song.audio_url);
+      if (response) {
+        setOfflineIds(prev => new Set(prev).add(song.db_id!));
+      }
+    }
   };
 
   // --- Lógica de Playlists (Reutilizada) ---
@@ -233,12 +285,35 @@ const Favorites = () => {
               onPlay={handlePlaySong}
               onToggleFavorite={handleToggleFavorite}
               onAddToPlaylist={handleOpenAddToPlaylist}
+              onToggleOffline={handleToggleOffline} // Adicionado
               isFavorite={favoriteIds.has(song.db_id!)}
+              isOffline={offlineIds.has(song.db_id!)} // Adicionado
+              isCaching={song.db_id === cachingId} // Adicionado
               variant="library"
             />
           ))}
         </div>
       )}
+
+      {/* Diálogo de Adicionar à Playlist */}
+      {songToAddToPlaylist?.db_id && (
+        <AddToPlaylistDialog
+          songDbId={songToAddToPlaylist.db_id}
+          isOpen={isAddToPlaylistDialogOpen}
+          onClose={() => setIsAddToPlaylistDialogOpen(false)}
+          playlists={playlists}
+          onAddToPlaylist={handleAddToPlaylist}
+          onOpenCreateNewPlaylist={handleOpenCreateNewPlaylist}
+        />
+      )}
+
+      {/* Diálogo de Criar Nova Playlist */}
+      <CreatePlaylistDialog
+        isOpen={isCreatePlaylistDialogOpen}
+        onClose={() => setIsCreatePlaylistDialogOpen(false)}
+        onCreate={(name) => handleCreateNewPlaylist(name, songToAddToPlaylist?.db_id)}
+        initialSongId={songToAddToPlaylist?.db_id}
+      />
     </>
   );
 };
