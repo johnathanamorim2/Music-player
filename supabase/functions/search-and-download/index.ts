@@ -42,11 +42,10 @@ async function getHealthyInstances(): Promise<string[]> {
   } catch (error) {
     console.error('[ERROR] Falha ao obter instâncias saudáveis. Usando lista de fallback:', error);
     // Retorna uma lista de fallback em caso de falha na API de instâncias ou se a lista dinâmica estiver vazia/inválida.
-    // Removendo 'https://invidious.projectsegfau.lt' que estava instável.
     return [
       'https://vid.puffyan.us',
       'https://iv.ggtyler.dev',
-      'https://invidious.snopyta.org', // Adicionando um fallback diferente
+      'https://invidious.snopyta.org',
     ];
   }
 }
@@ -70,7 +69,17 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
       clearTimeout(timeoutId);
 
       if (response.ok) {
-        const data = await response.json();
+        let data;
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          // Se a resposta for 200 OK, mas o corpo não for JSON (ex: página de erro HTML), 
+          // tratamos como falha e tentamos a próxima instância.
+          lastError = new Error(`Instância ${instance} retornou conteúdo inválido (não-JSON).`);
+          console.warn(`[WARN] Falha na análise JSON para ${instance}.`, jsonError);
+          continue; 
+        }
+
         console.log(`[LOG] Sucesso com ${instance}, ${data.length} resultados encontrados.`);
         if (data && Array.isArray(data)) {
           return data.slice(0, 12).map((video: any) => ({

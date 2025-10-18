@@ -69,6 +69,10 @@ const Index = () => {
       } catch (e) {
         try {
           const textError = await error.context.text();
+          // Se o erro for um problema de rede ou provedor, simplificamos a mensagem.
+          if (textError.includes("Unexpected token '<'") || textError.includes("Não foi possível buscar músicas")) {
+             return "O serviço de busca está temporariamente instável. Tente novamente.";
+          }
           return textError || error.message;
         } catch (textE) {
           return error.message;
