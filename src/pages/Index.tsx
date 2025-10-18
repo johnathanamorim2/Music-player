@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,14 +9,19 @@ import { MusicPlayer } from "@/components/MusicPlayer";
 import { Library } from "@/components/Library";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
+import { useMusicPlayer } from "@/context/MusicPlayerContext";
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [library, setLibrary] = useState<Song[]>([]);
-  const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const { setCurrentSong, setPlaylist } = useMusicPlayer();
+
+  useEffect(() => {
+    setPlaylist(library);
+  }, [library, setPlaylist]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,33 +61,8 @@ const Index = () => {
   };
 
   const handlePlaySong = (song: Song) => {
+    setPlaylist(library);
     setCurrentSong(song);
-  };
-
-  const handleClosePlayer = () => {
-    setCurrentSong(null);
-  };
-
-  const handleNextSong = () => {
-    if (!currentSong || library.length === 0) return;
-    const currentIndex = library.findIndex(song => song.id === currentSong.id);
-    if (currentIndex === -1 && library.length > 0) {
-      setCurrentSong(library[0]);
-      return;
-    }
-    const nextIndex = (currentIndex + 1) % library.length;
-    setCurrentSong(library[nextIndex]);
-  };
-
-  const handlePreviousSong = () => {
-    if (!currentSong || library.length === 0) return;
-    const currentIndex = library.findIndex(song => song.id === currentSong.id);
-    if (currentIndex === -1 && library.length > 0) {
-      setCurrentSong(library[0]);
-      return;
-    }
-    const previousIndex = (currentIndex - 1 + library.length) % library.length;
-    setCurrentSong(library[previousIndex]);
   };
 
   return (
@@ -127,12 +107,7 @@ const Index = () => {
           </Tabs>
         </main>
       </div>
-      <MusicPlayer
-        currentSong={currentSong}
-        onClose={handleClosePlayer}
-        onNext={handleNextSong}
-        onPrevious={handlePreviousSong}
-      />
+      <MusicPlayer />
     </div>
   );
 };

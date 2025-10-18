@@ -2,14 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Play, Pause, SkipBack, SkipForward, Volume2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Song } from "@/types";
-
-interface MusicPlayerProps {
-  currentSong: Song | null;
-  onNext?: () => void;
-  onPrevious?: () => void;
-  onClose?: () => void;
-}
+import { useMusicPlayer } from "@/context/MusicPlayerContext";
 
 declare global {
   interface Window {
@@ -18,7 +11,8 @@ declare global {
   }
 }
 
-export const MusicPlayer = ({ currentSong, onNext, onPrevious, onClose }: MusicPlayerProps) => {
+export const MusicPlayer = () => {
+  const { currentSong, playNext, playPrevious, closePlayer } = useMusicPlayer();
   const playerRef = useRef<any>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -78,7 +72,7 @@ export const MusicPlayer = ({ currentSong, onNext, onPrevious, onClose }: MusicP
             setIsPlaying(false);
           } else if (playerState === window.YT.PlayerState.ENDED) {
             setIsPlaying(false);
-            onNext?.();
+            playNext();
           } else if (playerState === window.YT.PlayerState.BUFFERING) {
             setIsLoading(true);
           }
@@ -145,13 +139,13 @@ export const MusicPlayer = ({ currentSong, onNext, onPrevious, onClose }: MusicP
 
         <div className="flex flex-col items-center gap-2 w-1/2">
           <div className="flex items-center gap-6">
-            <Button size="icon" variant="ghost" onClick={onPrevious} className="hover:text-purple-400 transition-colors disabled:text-gray-600" disabled={!onPrevious}>
+            <Button size="icon" variant="ghost" onClick={playPrevious} className="hover:text-purple-400 transition-colors disabled:text-gray-600" disabled={!playPrevious}>
               <SkipBack size={24} />
             </Button>
             <Button onClick={togglePlay} className="bg-purple-600 hover:bg-purple-500 rounded-full p-3 transition-colors w-14 h-14 flex items-center justify-center" disabled={!isApiReady}>
               {isLoading ? <Loader2 className="animate-spin" size={28} /> : isPlaying ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
             </Button>
-            <Button size="icon" variant="ghost" onClick={onNext} className="hover:text-purple-400 transition-colors disabled:text-gray-600" disabled={!onNext}>
+            <Button size="icon" variant="ghost" onClick={playNext} className="hover:text-purple-400 transition-colors disabled:text-gray-600" disabled={!playNext}>
               <SkipForward size={24} />
             </Button>
           </div>
@@ -167,7 +161,7 @@ export const MusicPlayer = ({ currentSong, onNext, onPrevious, onClose }: MusicP
             <Volume2 size={20} />
             <Slider value={[volume]} max={100} step={1} onValueChange={handleVolumeChange} className="w-24" />
           </div>
-          <Button size="icon" variant="ghost" onClick={onClose} className="hover:text-purple-400 transition-colors">
+          <Button size="icon" variant="ghost" onClick={closePlayer} className="hover:text-purple-400 transition-colors">
             <X size={20} />
           </Button>
         </div>
