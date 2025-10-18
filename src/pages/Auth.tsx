@@ -24,7 +24,26 @@ const AuthPage = () => {
         </div>
         <Auth
           supabaseClient={supabase}
-          appearance={{ theme: ThemeSupa }}
+          appearance={{ 
+            theme: ThemeSupa,
+            variables: {
+              default: {
+                colors: {
+                  // Cor primária para botões e links
+                  brand: 'hsl(263 70% 50%)', // Roxo base (aproximado do purple-600)
+                  brandAccent: 'hsl(263 70% 60%)', // Roxo hover (aproximado do purple-500)
+                },
+                // Customização do botão primário
+                radii: {
+                  borderRadiusButton: '0.5rem', // Arredondamento padrão
+                },
+              },
+            },
+            // Customização via className para garantir que o hover funcione
+            className: {
+              button: 'bg-purple-600 hover:bg-purple-500 transition-colors',
+            }
+          }}
           providers={[]}
           theme="dark"
         />
