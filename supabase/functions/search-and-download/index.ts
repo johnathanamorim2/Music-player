@@ -16,7 +16,7 @@ interface SearchResult {
 
 async function searchYouTube(query: string): Promise<SearchResult[]> {
   console.log(`[LOG] Iniciando busca no YouTube por: "${query}"`);
-  // Lista completamente revisada e expandida de instâncias Invidious para maior resiliência
+  // Lista agressivamente curada de instâncias com maior estabilidade reportada
   const invidiousInstances = [
     'https://vid.puffyan.us',
     'https://iv.ggtyler.dev',
@@ -25,7 +25,7 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
     'https://invidious.projectsegfau.lt',
     'https://invidious.slipfox.xyz',
     'https://inv.tux.pizza',
-    'https://yt.cdaut.de'
+    'https://invidious.kavin.rocks'
   ];
   let lastError: Error | null = null;
 
