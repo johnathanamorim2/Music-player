@@ -5,16 +5,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Updated and expanded list of instances
+// Drastically expanded and updated list of instances for better reliability
 const INVIDIOUS_INSTANCES = [
-  'https://invidious.protokolla.fi',
-  'https://invidious.lunar.icu',
-  'https://inv.tux.pizza',
-  'https://invidious.slipfox.xyz',
   'https://invidious.kavin.rocks',
-  'https://yewtu.be',
   'https://vid.puffyan.us',
   'https://iv.ggtyler.dev',
+  'https://yewtu.be',
+  'https://invidious.projectsegfau.lt',
+  'https://invidious.protokolla.fi',
+  'https://invidious.no-logs.com',
+  'https://invidious.privacydev.net',
+  'https://invidious.incogniweb.net',
+  'https://invidious.drgns.space',
+  'https://inv.odyssey346.dev',
+  'https://invidious.nerdvpn.de'
 ];
 
 function formatDuration(seconds: number): string {
@@ -37,7 +41,7 @@ serve(async (req: Request) => {
       throw new Error('Query is required');
     }
 
-    console.log(`Searching for "${query}" using Invidious instances.`);
+    console.log(`Searching for "${query}" using an expanded list of Invidious instances.`);
 
     for (const instance of INVIDIOUS_INSTANCES) {
       const controller = new AbortController();
