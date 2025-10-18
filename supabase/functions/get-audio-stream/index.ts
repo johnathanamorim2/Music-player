@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // @ts-ignore
-import play from 'https://esm.sh/play-dl@1.9.7';
+import ytdl from "https://esm.sh/deno-ytdl@1.2.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  console.log("get-audio-stream function invoked with play-dl.");
+  console.log("get-audio-stream function invoked with deno-ytdl via esm.sh.");
 
   if (req.method === 'OPTIONS') {
     console.log("Handling OPTIONS request.");
@@ -28,29 +28,29 @@ serve(async (req: Request) => {
       });
     }
 
-    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    console.log(`Fetching audio stream for URL: ${videoUrl}`);
+    console.log(`Fetching audio stream for videoId: ${videoId}`);
     
-    const streamInfo = await play.stream(videoUrl, {
-        quality: 2, // 0 = lowest, 1 = low, 2 = high
+    const audioStream = ytdl(videoId, {
+      filter: "audioonly",
+      quality: "highestaudio",
     });
 
-    if (!streamInfo || !streamInfo.stream) {
-        console.error("Could not get audio stream from play-dl.");
+    if (!audioStream) {
+        console.error("Could not get audio stream.");
         return new Response(JSON.stringify({ error: 'Could not get audio stream' }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 500,
         });
     }
     
-    console.log(`Successfully got audio stream with type: ${streamInfo.type}`);
+    console.log(`Successfully got audio stream.`);
 
     const responseHeaders = new Headers(corsHeaders);
-    responseHeaders.set('Content-Type', streamInfo.type);
+    responseHeaders.set('Content-Type', 'audio/webm');
     responseHeaders.set('Cache-Control', 'no-cache');
 
     console.log("Streaming audio back to client.");
-    return new Response(streamInfo.stream, {
+    return new Response(audioStream, {
       headers: responseHeaders,
       status: 200,
     });
