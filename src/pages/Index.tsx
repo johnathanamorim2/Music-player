@@ -59,10 +59,13 @@ const Index = () => {
   }, [library, setPlaylist]);
 
   const getDetailedErrorMessage = (error: any): string => {
-    if (error.context && error.context.error) {
+    if (error?.context?.error) {
       return error.context.error;
     }
-    return error.message || "Ocorreu um erro desconhecido.";
+    if (error?.message) {
+      return error.message;
+    }
+    return "Ocorreu um erro desconhecido.";
   };
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -72,19 +75,20 @@ const Index = () => {
     setIsLoading(true);
     setSearchResults([]);
 
-    try {
-      const { data, error } = await supabase.functions.invoke('search-and-download', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: { action: 'search', query: searchTerm },
-      });
+    const { data, error } = await supabase.functions.invoke('search-and-download', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+      body: { action: 'search', query: searchTerm },
+    });
+    
+    setIsLoading(false);
 
-      if (error) throw error;
-      if (data) setSearchResults(data.map((s: any) => ({...s, id: s.id})));
-
-    } catch (error: any) {
+    if (error) {
       showError(`Erro ao buscar: ${getDetailedErrorMessage(error)}`);
-    } finally {
-      setIsLoading(false);
+      return;
+    }
+
+    if (data) {
+      setSearchResults(data.map((s: any) => ({...s, id: s.id})));
     }
   };
 
@@ -96,30 +100,30 @@ const Index = () => {
     if (!session) return;
 
     setDownloadingId(song.id);
-    try {
-      const { data, error } = await supabase.functions.invoke('search-and-download', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: { action: 'download', videoId: song.id },
-      });
 
-      if (error) throw error;
-      
-      if (data) {
-        const newLibrarySong: Song = {
-          id: data.youtube_id,
-          title: data.title,
-          artist: data.artist,
-          thumbnail: data.thumbnail_url,
-          duration: data.duration,
-          db_id: data.id,
-        };
-        setLibrary(prev => [newLibrarySong, ...prev]);
-        showSuccess(`"${song.title}" foi adicionada à sua biblioteca!`);
-      }
-    } catch (error: any) {
+    const { data, error } = await supabase.functions.invoke('search-and-download', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+      body: { action: 'download', videoId: song.id },
+    });
+
+    setDownloadingId(null);
+
+    if (error) {
       showError(`Erro ao adicionar música: ${getDetailedErrorMessage(error)}`);
-    } finally {
-      setDownloadingId(null);
+      return;
+    }
+      
+    if (data) {
+      const newLibrarySong: Song = {
+        id: data.youtube_id,
+        title: data.title,
+        artist: data.artist,
+        thumbnail: data.thumbnail_url,
+        duration: data.duration,
+        db_id: data.id,
+      };
+      setLibrary(prev => [newLibrarySong, ...prev]);
+      showSuccess(`"${song.title}" foi adicionada à sua biblioteca!`);
     }
   };
 
