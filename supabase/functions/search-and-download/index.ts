@@ -45,8 +45,8 @@ async function getHealthyInstances(): Promise<string[]> {
     return [
       'https://invidious.sethforprivacy.com',
       'https://yewtu.be', 
-      'https://invidious.projectsegfau.lt', // Nova instância
-      'https://inv.riverside.rocks', // Nova instância
+      'https://invidious.projectsegfau.lt', 
+      'https://inv.riverside.rocks', 
     ];
   }
 }
@@ -56,12 +56,15 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
   const healthyInstances = await getHealthyInstances();
   let lastError: Error | null = null;
 
+  // Aumentando o timeout para 20 segundos (20000 ms)
+  const TIMEOUT_MS = 20000; 
+
   for (const instance of healthyInstances) {
     const url = `${instance}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
     try {
       console.log(`[LOG] Tentando instância: ${url}`);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); 
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS); 
 
       const response = await fetch(url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
