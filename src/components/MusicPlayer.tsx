@@ -96,8 +96,8 @@ export const MusicPlayer = () => {
     }
 
     youtubePlayerRef.current = new window.YT.Player(playerContainerRef.current, {
-      height: '0',
-      width: '0',
+      height: '1', // Mínimo visível
+      width: '1', // Mínimo visível
       videoId: videoId,
       playerVars: {
         autoplay: 1,
@@ -239,8 +239,18 @@ export const MusicPlayer = () => {
     <div className="fixed bottom-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md text-white p-4 border-t border-purple-800 z-50">
       {/* Elemento de áudio para reprodução offline/local */}
       <audio ref={audioRef} preload="auto" style={{ display: 'none' }} />
-      {/* Container do YouTube Player (apenas para modo online) */}
-      <div ref={playerContainerRef} style={{ display: 'none' }} />
+      {/* Container do YouTube Player (agora com tamanho mínimo e posicionado fora da tela) */}
+      <div 
+        ref={playerContainerRef} 
+        style={{ 
+          position: 'fixed', 
+          bottom: '-10px', 
+          right: '-10px', 
+          width: '1px', 
+          height: '1px', 
+          overflow: 'hidden' 
+        }} 
+      />
       
       <div className="container mx-auto flex items-center justify-between">
         <div className="flex items-center gap-4 w-1/4">
