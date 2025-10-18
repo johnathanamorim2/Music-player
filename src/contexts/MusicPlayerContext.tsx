@@ -1,6 +1,16 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
 import { Song } from "@/types";
-import { useAuth } from "@/hooks/useAuth"; // Importando useAuth
+import { useAuth } from "@/hooks/useAuth";
+
+// Função utilitária para embaralhar um array (Fisher-Yates)
+const shuffleArray = (array: Song[]): Song[] => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
 
 interface MusicPlayerContextType {
   currentSong: Song | null;
@@ -10,6 +20,8 @@ interface MusicPlayerContextType {
   playNext: () => void;
   playPrevious: () => void;
   closePlayer: () => void;
+  isShuffling: boolean; // Novo
+  toggleShuffle: () => void; // Novo
 }
 
 const MusicPlayerContext = createContext<MusicPlayerContextType | undefined>(
@@ -17,14 +29,17 @@ const MusicPlayerContext = createContext<MusicPlayerContextType | undefined>(
 );
 
 export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
-  const { user, loading: authLoading } = useAuth(); // Usando useAuth
+  const { user, loading: authLoading } = useAuth();
+  const [originalPlaylist, setOriginalPlaylist] = useState<Song[]>([]); // Lista original
+  const [playlist, setShuffledPlaylist] = useState<Song[]>([]); // Lista atual (embaralhada ou não)
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
-  const [playlist, setPlaylist] = useState<Song[]>([]);
+  const [isShuffling, setIsShuffling] = useState(false); // Novo estado de shuffle
   const [lastUserId, setLastUserId] = useState<string | null | undefined>(authLoading ? undefined : user?.id);
 
   const closePlayer = () => {
     setCurrentSong(null);
-    setPlaylist([]);
+    setShuffledPlaylist([]);
+    setOriginalPlaylist([]);
   };
 
   // Efeito para resetar o player quando o usuário muda
@@ -33,7 +48,6 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
 
     const currentUserId = user?.id || null;
 
-    // Se o ID do usuário mudou (incluindo de logado para deslogado, ou de UserA para UserB)
     if (lastUserId !== undefined && lastUserId !== currentUserId) {
       console.log(`[MusicPlayer] User changed from ${lastUserId} to ${currentUserId}. Resetting player state.`);
       closePlayer();
@@ -42,6 +56,39 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     setLastUserId(currentUserId);
   }, [user, authLoading, lastUserId]);
 
+  // Função para definir a playlist, aplicando shuffle se necessário
+  const setPlaylist = useCallback((songs: Song[]) => {
+    setOriginalPlaylist(songs);
+    if (isShuffling) {
+      setShuffledPlaylist(shuffleArray(songs));
+    } else {
+      setShuffledPlaylist(songs);
+    }
+  }, [isShuffling]);
+
+  // Efeito para re-embaralhar ou reverter a playlist quando isShuffling muda
+  useEffect(() => {
+    if (isShuffling) {
+      setShuffledPlaylist(shuffleArray(originalPlaylist));
+    } else {
+      setShuffledPlaylist(originalPlaylist);
+    }
+    // Se a música atual não estiver na nova lista (o que pode acontecer se a lista for re-embaralhada),
+    // tentamos encontrar a música original na nova lista para manter a reprodução.
+    if (currentSong) {
+        const found = playlist.find(s => s.db_id === currentSong.db_id);
+        if (!found) {
+            // Se a música atual não for encontrada (improvável se a lista for a mesma), 
+            // ou se a lista foi re-embaralhada, garantimos que a referência é válida.
+            // Não precisamos mudar o currentSong, apenas a playlist.
+        }
+    }
+  }, [isShuffling, originalPlaylist]);
+
+
+  const toggleShuffle = () => {
+    setIsShuffling(prev => !prev);
+  };
 
   const playNext = () => {
     if (playlist.length === 0 || !currentSong) return;
@@ -66,17 +113,21 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   };
 
 
+  const value = {
+    currentSong,
+    playlist,
+    setCurrentSong,
+    setPlaylist,
+    playNext,
+    playPrevious,
+    closePlayer,
+    isShuffling,
+    toggleShuffle,
+  };
+
   return (
     <MusicPlayerContext.Provider
-      value={{
-        currentSong,
-        playlist,
-        setCurrentSong,
-        setPlaylist,
-        playNext,
-        playPrevious,
-        closePlayer,
-      }}
+      value={value}
     >
       {children}
     </MusicPlayerContext.Provider>

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Play, Pause, SkipBack, SkipForward, Volume2, X, Loader2 } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, X, Loader2, Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
-import { useOfflineAudio } from "@/hooks/useOfflineAudio"; // Importando o hook
+import { useOfflineAudio } from "@/hooks/useOfflineAudio";
+import { cn } from "@/lib/utils"; // Importando cn para classes condicionais
 
 declare global {
   interface Window {
@@ -13,7 +14,7 @@ declare global {
 }
 
 export const MusicPlayer = () => {
-  const { currentSong, playlist, playNext, playPrevious, closePlayer } = useMusicPlayer();
+  const { currentSong, playlist, playNext, playPrevious, closePlayer, isShuffling, toggleShuffle } = useMusicPlayer();
   
   // YouTube Player Refs
   const youtubePlayerRef = useRef<any>(null);
@@ -263,6 +264,19 @@ export const MusicPlayer = () => {
 
         <div className="flex flex-col items-center gap-2 w-1/2">
           <div className="flex items-center gap-6">
+            {/* Botão de Shuffle */}
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              onClick={toggleShuffle} 
+              className={cn(
+                "hover:text-purple-400 transition-colors",
+                isShuffling ? "text-purple-400" : "text-gray-400"
+              )}
+            >
+              <Shuffle size={24} />
+            </Button>
+            
             <Button size="icon" variant="ghost" onClick={playPrevious} className="hover:text-purple-400 transition-colors disabled:text-gray-600" disabled={!playPrevious}>
               <SkipBack size={24} />
             </Button>
