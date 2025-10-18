@@ -14,43 +14,84 @@ interface SearchResult {
   duration: number;
 }
 
-async function searchYouTube(query: string): Promise<SearchResult[]> {
-  console.log(`[LOG] Iniciando busca no YouTube por: "${query}" via api.invidious.io`);
-  const baseUrl = 'https://api.invidious.io';
-  const url = `${baseUrl}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
-  
+async function getHealthyInstances(): Promise<string[]> {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // Timeout de 8 segundos
-
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-
-    console.log(`[LOG] Resposta da API: Status ${response.status}`);
+    console.log('[LOG] Buscando lista de instâncias saudáveis de api.invidious.io...');
+    const response = await fetch('https://api.invidious.io/instances.json');
     if (!response.ok) {
-      throw new Error(`A API retornou um status não-OK: ${response.status}`);
+      throw new Error(`Não foi possível buscar a lista de provedores: Status ${response.status}`);
     }
-
-    const data = await response.json();
-    console.log(`[LOG] Sucesso, ${data.length} resultados encontrados.`);
+    const instances = await response.json();
     
-    if (data && Array.isArray(data)) {
-      return data.slice(0, 12).map((video: any) => ({
-        id: video.videoId,
-        title: video.title,
-        artist: video.author || 'Unknown Artist',
-        thumbnail: video.videoThumbnails?.find((t: any) => t.quality === 'mqdefault')?.url || `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`,
-        duration: video.lengthSeconds || 0,
-      }));
+    const healthyInstances = instances
+      .filter((instance: any) => {
+        const details = instance[1];
+        return details &&
+               details.type === 'https' &&
+               details.api === true &&
+               details.cors === true &&
+               details.monitor?.down === false;
+      })
+      .map((instance: any) => instance[1].uri);
+
+    console.log(`[LOG] Encontradas ${healthyInstances.length} instâncias saudáveis.`);
+    if (healthyInstances.length === 0) {
+      throw new Error('Nenhum provedor de busca saudável está disponível no momento.');
     }
-    return [];
-  } catch (err) {
-    console.error('[ERROR] Falha ao buscar na API Invidious:', err);
-    throw new Error(`Não foi possível buscar músicas. O serviço pode estar instável. (Detalhe: ${err.message})`);
+    return healthyInstances;
+  } catch (error) {
+    console.error('[ERROR] Falha ao obter instâncias saudáveis:', error);
+    // Retorna uma lista de fallback em caso de falha na API de instâncias
+    return [
+      'https://vid.puffyan.us',
+      'https://iv.ggtyler.dev',
+      'https://invidious.projectsegfau.lt',
+    ];
   }
+}
+
+async function searchYouTube(query: string): Promise<SearchResult[]> {
+  console.log(`[LOG] Iniciando busca no YouTube por: "${query}"`);
+  const healthyInstances = await getHealthyInstances();
+  let lastError: Error | null = null;
+
+  for (const instance of healthyInstances) {
+    const url = `${instance}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
+    try {
+      console.log(`[LOG] Tentando instância: ${url}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
+
+      const response = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`[LOG] Sucesso com ${instance}, ${data.length} resultados encontrados.`);
+        if (data && Array.isArray(data)) {
+          return data.slice(0, 12).map((video: any) => ({
+            id: video.videoId,
+            title: video.title,
+            artist: video.author || 'Unknown Artist',
+            thumbnail: video.videoThumbnails?.find((t: any) => t.quality === 'mqdefault')?.url || `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`,
+            duration: video.lengthSeconds || 0,
+          }));
+        }
+      } else {
+        lastError = new Error(`Instância ${instance} retornou status ${response.status}`);
+        console.warn(`[WARN] ${lastError.message}`);
+      }
+    } catch (err) {
+      lastError = err as Error;
+      console.warn(`[WARN] Falha na instância ${instance}:`, err.message);
+    }
+  }
+
+  console.error('[ERROR] Todas as instâncias saudáveis falharam. Último erro:', lastError);
+  throw new Error(`Não foi possível buscar músicas. O serviço pode estar instável. (Detalhe: ${lastError?.message || 'Todos os provedores falharam'})`);
 }
 
 serve(async (req) => {
@@ -61,23 +102,10 @@ serve(async (req) => {
   }
 
   try {
-    let supabase;
-    try {
-      console.log('[DIAGNOSTIC] Lendo variáveis de ambiente...');
-      const supabaseUrl = Deno.env.get('SUPABASE_URL');
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-      
-      if (!supabaseUrl || !supabaseKey) {
-        console.error('[FATAL] Variáveis de ambiente SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não encontradas.');
-        throw new Error('Erro de configuração do servidor: Variáveis de ambiente ausentes.');
-      }
-      console.log('[DIAGNOSTIC] Variáveis de ambiente encontradas. Criando cliente Supabase...');
-      supabase = createClient(supabaseUrl, supabaseKey);
-      console.log('[DIAGNOSTIC] Cliente Supabase criado com sucesso.');
-    } catch (e) {
-      console.error('[FATAL] Falha ao inicializar o cliente Supabase:', e);
-      throw new Error(`Erro de inicialização do servidor: ${e.message}`);
-    }
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
