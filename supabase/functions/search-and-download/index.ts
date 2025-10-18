@@ -16,15 +16,21 @@ interface SearchResult {
 
 async function searchYouTube(query: string): Promise<SearchResult[]> {
   console.log(`[LOG] Iniciando busca no YouTube por: "${query}"`);
+  // Lista de instâncias drasticamente expandida e diversificada para máxima resiliência.
+  // Estes são serviços públicos e sua estabilidade pode variar, por isso usamos uma lista grande.
   const invidiousInstances = [
+    'https://invidious.io.lol',
+    'https://inv.n8p.xyz',
     'https://vid.puffyan.us',
     'https://iv.ggtyler.dev',
-    'https://invidious.lunar.icu',
-    'https://invidious.nerdvpn.de',
+    'https://yewtu.be',
     'https://invidious.projectsegfau.lt',
+    'https://invidious.protokolla.fi',
     'https://invidious.slipfox.xyz',
-    'https://inv.tux.pizza',
-    'https://invidious.kavin.rocks'
+    'https://invidious.weblibre.org',
+    'https://invidious.lunar.icu',
+    'https://invidious.privacydev.net',
+    'https://invidious.einfachzocken.eu',
   ];
   let lastError: Error | null = null;
 
@@ -33,7 +39,7 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
     try {
       console.log(`[LOG] Tentando instância: ${url}`);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 6000); // Timeout de 6 segundos
       
       const response = await fetch(url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
@@ -45,7 +51,6 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
       if (response.ok) {
         let data;
         try {
-          // Tenta clonar a resposta para ler o texto sem consumir o corpo
           const responseClone = response.clone();
           const text = await responseClone.text();
           if (text.trim().startsWith('<')) {
@@ -55,7 +60,7 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
         } catch (jsonError) {
           console.warn(`[WARN] Instância ${instance} retornou uma resposta inválida (não-JSON). Pulando. Erro: ${jsonError.message}`);
           lastError = new Error(`A instância ${instance} retornou dados inválidos.`);
-          continue; // Pula para a próxima instância
+          continue;
         }
 
         console.log(`[LOG] Sucesso com ${instance}, ${data.length} resultados encontrados.`);
