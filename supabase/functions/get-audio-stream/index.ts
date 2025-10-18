@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  console.log("get-audio-stream function invoked with play-dl and Deno's Node compatibility layer.");
+  console.log("get-audio-stream function invoked with authentication.");
 
   if (req.method === 'OPTIONS') {
     console.log("Handling OPTIONS request.");
@@ -17,6 +17,19 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Authenticate with YouTube using the cookie from Supabase secrets
+    const youtubeCookie = Deno.env.get('YOUTUBE_COOKIE');
+    if (youtubeCookie) {
+      console.log("Found YouTube cookie secret. Setting token for play-dl.");
+      await play.setToken({
+        youtube: {
+          cookie: youtubeCookie,
+        },
+      });
+    } else {
+      console.warn("YOUTUBE_COOKIE secret not found. Streaming may fail for age-restricted or bot-protected content.");
+    }
+
     console.log("Parsing request body...");
     const { videoId } = await req.json();
     console.log(`Received videoId for streaming: ${videoId}`);
