@@ -10,6 +10,7 @@ import { Song } from "@/types";
 import { MusicCard } from "@/components/MusicCard";
 import { showError, showSuccess } from "@/utils/toast";
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
+import { MainNavigation } from "@/components/MainNavigation"; // Importando
 
 interface PlaylistDetailData {
   name: string;
@@ -135,6 +136,10 @@ const PlaylistDetail = () => {
     <div className="bg-gray-900 text-white min-h-screen">
       <div className="container mx-auto px-4 py-8 pb-32">
         <Header />
+        
+        {/* Navegação Principal */}
+        <MainNavigation currentTab="library" onTabChange={() => {}} />
+
         <Link to="/playlists" className="flex items-center text-gray-400 hover:text-purple-400 mb-6 transition-colors">
           <ArrowLeft size={20} className="mr-2" /> Voltar para Playlists
         </Link>

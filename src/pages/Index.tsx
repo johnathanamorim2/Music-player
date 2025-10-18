@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import { Song, Playlist } from "@/types";
 import { SearchResults } from "@/components/SearchResults";
@@ -15,6 +15,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { AddToPlaylistDialog } from "@/components/AddToPlaylistDialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CreatePlaylistDialog } from "@/components/CreatePlaylistDialog";
+import { MainNavigation } from "@/components/MainNavigation"; // Importando o novo componente
 
 // --- Hooks de Dados ---
 
@@ -73,6 +74,7 @@ const Index = () => {
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [currentTab, setCurrentTab] = useState<"search" | "library">("search");
   
   // Estados para Diálogos de Playlist
   const [isAddToPlaylistDialogOpen, setIsAddToPlaylistDialogOpen] = useState(false);
@@ -163,6 +165,7 @@ const Index = () => {
 
     if (data && data.results) {
       setSearchResults(data.results.map((s: any) => ({...s, id: s.id})));
+      setCurrentTab("search"); // Garante que a aba de busca esteja ativa após a busca
     }
   };
 
@@ -350,11 +353,14 @@ const Index = () => {
         <SearchBar onSearch={handleSearch} isLoading={isLoading} />
         
         <main className="mt-12">
-          <Tabs defaultValue="search" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8 bg-gray-800 text-gray-400">
-              <TabsTrigger value="search">Buscar</TabsTrigger>
-              <TabsTrigger value="library">Minha Biblioteca</TabsTrigger>
-            </TabsList>
+          <Tabs value={currentTab} onValueChange={(value) => setCurrentTab(value as "search" | "library")} className="w-full">
+            
+            {/* Navegação Principal */}
+            <MainNavigation 
+              currentTab={currentTab} 
+              onTabChange={setCurrentTab} 
+            />
+
             <TabsContent value="search">
               <SearchResults 
                 results={searchResults} 

@@ -11,6 +11,7 @@ import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
 import { AddToPlaylistDialog } from "@/components/AddToPlaylistDialog";
 import { useState } from "react";
 import { CreatePlaylistDialog } from "@/components/CreatePlaylistDialog";
+import { MainNavigation } from "@/components/MainNavigation"; // Importando
 
 // Hook para buscar favoritos detalhados
 const useDetailedFavorites = (userId: string | undefined) => {
@@ -215,6 +216,10 @@ const Favorites = () => {
     <div className="bg-gray-900 text-white min-h-screen">
       <div className="container mx-auto px-4 py-8 pb-32">
         <Header />
+        
+        {/* Navegação Principal */}
+        <MainNavigation currentTab="library" onTabChange={() => {}} />
+
         <h2 className="text-3xl font-bold mb-8 text-purple-400">Minhas Músicas Favoritas</h2>
         
         {isLoading ? (

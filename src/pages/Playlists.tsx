@@ -10,6 +10,7 @@ import { PlaylistCard } from "@/components/PlaylistCard";
 import { CreatePlaylistDialog } from "@/components/CreatePlaylistDialog";
 import { useState } from "react";
 import { showError, showSuccess } from "@/utils/toast";
+import { MainNavigation } from "@/components/MainNavigation"; // Importando
 
 // Hook para buscar playlists (com contagem de músicas)
 const useUserPlaylists = (userId: string | undefined) => {
@@ -72,6 +73,10 @@ const Playlists = () => {
     <div className="bg-gray-900 text-white min-h-screen">
       <div className="container mx-auto px-4 py-8 pb-32">
         <Header />
+        
+        {/* Navegação Principal */}
+        <MainNavigation currentTab="library" onTabChange={() => {}} />
+
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-bold text-purple-400">Minhas Playlists</h2>
           <Button 
