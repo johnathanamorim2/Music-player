@@ -48,41 +48,65 @@ export const MusicCard = ({
     ? <Download size={24} /> 
     : <Play size={24} className="ml-0.5" />;
 
-  const renderLibraryActions = () => (
-    <div className="absolute top-2 right-2 flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-      {onToggleFavorite && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              onClick={(e) => { e.stopPropagation(); onToggleFavorite(song); }}
-              className={`w-8 h-8 rounded-full ${isFavorite ? 'text-red-500 hover:bg-gray-700' : 'text-white hover:bg-gray-700'}`}
-            >
-              <Heart size={16} fill={isFavorite ? 'currentColor' : 'none'} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {isFavorite ? "Remover dos Favoritos" : "Adicionar aos Favoritos"}
-          </TooltipContent>
-        </Tooltip>
-      )}
-      {onAddToPlaylist && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              onClick={(e) => { e.stopPropagation(); onAddToPlaylist(song); }}
-              className="w-8 h-8 rounded-full text-white hover:bg-gray-700"
-            >
-              <ListMusic size={16} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Adicionar à Playlist</TooltipContent>
-        </Tooltip>
-      )}
-      {onDelete && (
+  const renderLibraryActions = () => {
+    // Ações para Library (Favoritar, Adicionar à Playlist, Deletar da Biblioteca)
+    if (variant === 'library' || variant === 'favorites') {
+      return (
+        <>
+          {onToggleFavorite && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  onClick={(e) => { e.stopPropagation(); onToggleFavorite(song); }}
+                  className={`w-8 h-8 rounded-full ${isFavorite ? 'text-red-500 hover:bg-gray-700' : 'text-white hover:bg-gray-700'}`}
+                >
+                  <Heart size={16} fill={isFavorite ? 'currentColor' : 'none'} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isFavorite ? "Remover dos Favoritos" : "Adicionar aos Favoritos"}
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {onAddToPlaylist && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  onClick={(e) => { e.stopPropagation(); onAddToPlaylist(song); }}
+                  className="w-8 h-8 rounded-full text-white hover:bg-gray-700"
+                >
+                  <ListMusic size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Adicionar à Playlist</TooltipContent>
+            </Tooltip>
+          )}
+          {onDelete && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  onClick={(e) => { e.stopPropagation(); onDelete(song); }}
+                  className="w-8 h-8 rounded-full text-red-400 hover:bg-gray-700"
+                >
+                  <Trash2 size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Remover da Biblioteca</TooltipContent>
+            </Tooltip>
+          )}
+        </>
+      );
+    }
+    
+    // Ações para Playlist (Apenas Deletar da Playlist)
+    if (variant === 'playlist' && onDelete) {
+      return (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button 
@@ -94,11 +118,13 @@ export const MusicCard = ({
               <Trash2 size={16} />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Remover da Biblioteca</TooltipContent>
+          <TooltipContent>Remover da Playlist</TooltipContent>
         </Tooltip>
-      )}
-    </div>
-  );
+      );
+    }
+
+    return null;
+  };
 
   return (
     <Card className="bg-gray-800 border-transparent text-white overflow-hidden group relative cursor-pointer" onClick={handlePrimaryAction}>
@@ -124,7 +150,11 @@ export const MusicCard = ({
             </button>
           )}
           
-          {(variant === 'library' || variant === 'playlist') && renderLibraryActions()}
+          {(variant === 'library' || variant === 'playlist') && (
+            <div className="absolute top-2 right-2 flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              {renderLibraryActions()}
+            </div>
+          )}
         </div>
         <p className="font-semibold truncate">{title}</p>
         <div className="flex justify-between items-baseline">

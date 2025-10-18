@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
-import { Song } from "@/types";
+import { Song, Playlist } from "@/types";
 import { SearchResults } from "@/components/SearchResults";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { Library } from "@/components/Library";
@@ -14,14 +14,15 @@ import { FunctionsHttpError } from '@supabase/supabase-js';
 import { SearchBar } from "@/components/SearchBar";
 import { AddToPlaylistDialog } from "@/components/AddToPlaylistDialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { CreatePlaylistDialog } from "@/components/CreatePlaylistDialog";
 
-// --- Hooks de Dados (Stubs para Playlists/Favorites) ---
+// --- Hooks de Dados ---
 
 const useUserFavorites = (userId: string | undefined) => {
   return useQuery({
     queryKey: ["favorites", userId],
     queryFn: async () => {
-      if (!userId) return [];
+      if (!userId) return new Set<string>();
       const { data, error } = await supabase
         .from('favorites')
         .select('song_id')
@@ -36,19 +37,30 @@ const useUserFavorites = (userId: string | undefined) => {
 };
 
 const useUserPlaylists = (userId: string | undefined) => {
-  return useQuery({
+  return useQuery<Playlist[]>({
     queryKey: ["playlists", userId],
     queryFn: async () => {
       if (!userId) return [];
-      // Placeholder: Em um app real, você faria um join ou count aqui.
+      
       const { data, error } = await supabase
         .from('playlists')
-        .select('id, name, user_id')
-        .eq('user_id', userId);
+        .select(`
+          id, 
+          name, 
+          user_id,
+          playlist_songs(count)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
-      // Adicionando song_count como placeholder
-      return data.map(p => ({ ...p, song_count: 0 }));
+      
+      return data.map(p => ({
+        id: p.id,
+        name: p.name,
+        user_id: p.user_id,
+        song_count: p.playlist_songs[0]?.count || 0,
+      })) as Playlist[];
     },
     enabled: !!userId,
     initialData: [],
@@ -61,7 +73,10 @@ const Index = () => {
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [isPlaylistDialogOpen, setIsPlaylistDialogOpen] = useState(false);
+  
+  // Estados para Diálogos de Playlist
+  const [isAddToPlaylistDialogOpen, setIsAddToPlaylistDialogOpen] = useState(false);
+  const [isCreatePlaylistDialogOpen, setIsCreatePlaylistDialogOpen] = useState(false);
   const [songToAddToPlaylist, setSongToAddToPlaylist] = useState<Song | null>(null);
   
   const { setCurrentSong, setPlaylist } = useMusicPlayer();
@@ -71,13 +86,14 @@ const Index = () => {
   const userId = user?.id;
 
   // Query para a Biblioteca
-  const { data: library = [], isLoading: isLibraryLoading, refetch: refetchLibrary } = useQuery({
+  const { data: library = [], isLoading: isLibraryLoading } = useQuery({
     queryKey: ["songs", userId],
     queryFn: async () => {
       if (!userId) return [];
       const { data, error } = await supabase
         .from('songs')
         .select('*')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -97,7 +113,7 @@ const Index = () => {
 
   // Queries para Favoritos e Playlists
   const { data: favoriteIds } = useUserFavorites(userId);
-  const { data: playlists } = useUserPlaylists(userId);
+  const { data: playlists, refetch: refetchPlaylists } = useUserPlaylists(userId);
 
   useEffect(() => {
     setPlaylist(library);
@@ -237,25 +253,94 @@ const Index = () => {
     setCurrentSong(song);
   };
 
+  // --- Lógica de Playlists ---
+
   const handleOpenAddToPlaylist = (song: Song) => {
     if (!song.db_id) {
       showError("Música deve estar na biblioteca para ser adicionada a uma playlist.");
       return;
     }
     setSongToAddToPlaylist(song);
-    setIsPlaylistDialogOpen(true);
+    setIsAddToPlaylistDialogOpen(true);
   };
 
-  const handleAddToPlaylist = (playlistId: string, songId: string) => {
-    // TODO: Implementar lógica de INSERT INTO playlist_songs
-    showSuccess(`Música adicionada à playlist ${playlistId} (A ser implementado).`);
-    setIsPlaylistDialogOpen(false);
+  const handleAddToPlaylist = async (playlistId: string, songDbId: string) => {
+    if (!userId) return;
+
+    // 1. Verificar se a música já está na playlist
+    const { data: existingEntry } = await supabase
+      .from('playlist_songs')
+      .select('id')
+      .eq('playlist_id', playlistId)
+      .eq('song_id', songDbId)
+      .maybeSingle();
+
+    if (existingEntry) {
+      showError("Esta música já está nesta playlist.");
+      setIsAddToPlaylistDialogOpen(false);
+      return;
+    }
+
+    // 2. Encontrar a próxima posição
+    const { data: maxPositionData } = await supabase
+      .from('playlist_songs')
+      .select('position')
+      .eq('playlist_id', playlistId)
+      .order('position', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextPosition = (maxPositionData?.position || 0) + 1;
+
+    // 3. Inserir
+    const { error } = await supabase
+      .from('playlist_songs')
+      .insert({ 
+        playlist_id: playlistId, 
+        song_id: songDbId, 
+        position: nextPosition 
+      });
+
+    if (error) {
+      showError("Erro ao adicionar música à playlist.");
+      console.error(error);
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["playlists", userId] });
+    queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
+    showSuccess(`Música adicionada à playlist!`);
+    setIsAddToPlaylistDialogOpen(false);
   };
 
-  const handleCreateNewPlaylist = (songId: string) => {
-    // TODO: Implementar lógica de criação de playlist e adição da música
-    alert(`Criar nova playlist e adicionar música ${songId} (A ser implementado)`);
-    setIsPlaylistDialogOpen(false);
+  const handleCreateNewPlaylist = async (name: string, songDbId?: string) => {
+    if (!userId) return;
+
+    const { data: newPlaylist, error } = await supabase
+      .from('playlists')
+      .insert({ user_id: userId, name: name })
+      .select('id')
+      .single();
+
+    if (error) {
+      showError("Erro ao criar playlist.");
+      console.error(error);
+      return;
+    }
+
+    showSuccess(`Playlist "${name}" criada com sucesso!`);
+    
+    // Se houver uma música para adicionar, adicione-a
+    if (songDbId && newPlaylist) {
+      await handleAddToPlaylist(newPlaylist.id, songDbId);
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["playlists", userId] });
+  };
+
+  const handleOpenCreateNewPlaylist = () => {
+    setIsAddToPlaylistDialogOpen(false);
+    setIsCreatePlaylistDialogOpen(true);
   };
 
   return (
@@ -299,16 +384,25 @@ const Index = () => {
       </div>
       <MusicPlayer />
       
-      {songToAddToPlaylist && (
+      {/* Diálogo de Adicionar à Playlist */}
+      {songToAddToPlaylist?.db_id && (
         <AddToPlaylistDialog
-          songId={songToAddToPlaylist.db_id!}
-          isOpen={isPlaylistDialogOpen}
-          onClose={() => setIsPlaylistDialogOpen(false)}
+          songDbId={songToAddToPlaylist.db_id}
+          isOpen={isAddToPlaylistDialogOpen}
+          onClose={() => setIsAddToPlaylistDialogOpen(false)}
           playlists={playlists}
           onAddToPlaylist={handleAddToPlaylist}
-          onCreateNewPlaylist={handleCreateNewPlaylist}
+          onOpenCreateNewPlaylist={handleOpenCreateNewPlaylist}
         />
       )}
+
+      {/* Diálogo de Criar Nova Playlist */}
+      <CreatePlaylistDialog
+        isOpen={isCreatePlaylistDialogOpen}
+        onClose={() => setIsCreatePlaylistDialogOpen(false)}
+        onCreate={(name) => handleCreateNewPlaylist(name, songToAddToPlaylist?.db_id)}
+        initialSongId={songToAddToPlaylist?.db_id}
+      />
     </div>
   );
 };

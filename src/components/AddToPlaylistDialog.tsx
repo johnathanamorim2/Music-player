@@ -5,22 +5,21 @@ import { ListMusic, Plus } from "lucide-react";
 import { Playlist } from "@/types";
 
 interface AddToPlaylistDialogProps {
-  songId: string;
+  songDbId: string; // Usando o db_id da música
   isOpen: boolean;
   onClose: () => void;
-  // TODO: Adicionar playlists reais
   playlists: Playlist[];
-  onAddToPlaylist: (playlistId: string, songId: string) => void;
-  onCreateNewPlaylist: (songId: string) => void;
+  onAddToPlaylist: (playlistId: string, songDbId: string) => void;
+  onOpenCreateNewPlaylist: () => void;
 }
 
 export const AddToPlaylistDialog = ({ 
-  songId, 
+  songDbId, 
   isOpen, 
   onClose, 
   playlists, 
   onAddToPlaylist, 
-  onCreateNewPlaylist 
+  onOpenCreateNewPlaylist 
 }: AddToPlaylistDialogProps) => {
 
   return (
@@ -35,7 +34,7 @@ export const AddToPlaylistDialog = ({
         
         <div className="space-y-4">
           <Button 
-            onClick={() => onCreateNewPlaylist(songId)} 
+            onClick={onOpenCreateNewPlaylist} 
             className="w-full bg-purple-600 hover:bg-purple-500"
           >
             <Plus size={16} className="mr-2" /> Criar Nova Playlist
@@ -50,7 +49,7 @@ export const AddToPlaylistDialog = ({
                   <div 
                     key={playlist.id} 
                     className="flex items-center justify-between p-2 rounded-md hover:bg-gray-700 cursor-pointer transition-colors"
-                    onClick={() => onAddToPlaylist(playlist.id, songId)}
+                    onClick={() => onAddToPlaylist(playlist.id, songDbId)}
                   >
                     <div className="flex items-center">
                       <ListMusic size={18} className="mr-3 text-gray-400" />
