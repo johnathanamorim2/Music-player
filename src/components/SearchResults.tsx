@@ -1,13 +1,23 @@
 import { Song } from "@/types";
 import { SongCard } from "./SongCard";
-import { Music } from "lucide-react";
+import { Music, Loader2 } from "lucide-react";
 
 interface SearchResultsProps {
   results: Song[];
   onPlaySong: (song: Song) => void;
+  isLoading: boolean;
 }
 
-export const SearchResults = ({ results, onPlaySong }: SearchResultsProps) => {
+export const SearchResults = ({ results, onPlaySong, isLoading }: SearchResultsProps) => {
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center text-gray-500 h-64">
+        <Loader2 size={48} className="animate-spin text-purple-400" />
+        <p className="mt-4 text-lg">Buscando músicas...</p>
+      </div>
+    );
+  }
+
   if (results.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-gray-500 h-64">
