@@ -58,6 +58,13 @@ const Index = () => {
     setPlaylist(library);
   }, [library, setPlaylist]);
 
+  const getDetailedErrorMessage = (error: any): string => {
+    if (error.context && error.context.error) {
+      return error.context.error;
+    }
+    return error.message || "Ocorreu um erro desconhecido.";
+  };
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim() || isLoading || !session) return;
@@ -71,11 +78,11 @@ const Index = () => {
         body: { action: 'search', query: searchTerm },
       });
 
-      if (error) throw new Error(error.message);
+      if (error) throw error;
       if (data) setSearchResults(data.map((s: any) => ({...s, id: s.id})));
 
     } catch (error: any) {
-      showError(`Erro ao buscar: ${error.message}`);
+      showError(`Erro ao buscar: ${getDetailedErrorMessage(error)}`);
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +102,7 @@ const Index = () => {
         body: { action: 'download', videoId: song.id },
       });
 
-      if (error) throw new Error(error.message);
+      if (error) throw error;
       
       if (data) {
         const newLibrarySong: Song = {
@@ -110,7 +117,7 @@ const Index = () => {
         showSuccess(`"${song.title}" foi adicionada à sua biblioteca!`);
       }
     } catch (error: any) {
-      showError(`Erro ao adicionar música: ${error.message}`);
+      showError(`Erro ao adicionar música: ${getDetailedErrorMessage(error)}`);
     } finally {
       setDownloadingId(null);
     }
