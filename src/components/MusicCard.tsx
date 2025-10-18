@@ -176,7 +176,8 @@ export const MusicCard = ({
           ) : (
             <button
               onClick={(e) => { e.stopPropagation(); handlePrimaryAction(); }}
-              className="absolute bottom-2 right-2 bg-purple-600 hover:bg-purple-500 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-y-0 translate-y-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              // Alterado de right-2 para left-2
+              className="absolute bottom-2 left-2 bg-purple-600 hover:bg-purple-500 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-y-0 translate-y-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
             >
               {primaryActionIcon}
             </button>
