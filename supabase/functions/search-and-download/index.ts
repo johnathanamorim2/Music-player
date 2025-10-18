@@ -43,10 +43,9 @@ async function getHealthyInstances(): Promise<string[]> {
     console.error('[ERROR] Falha ao obter instâncias saudáveis. Usando lista de fallback:', error);
     // Lista de fallback revisada para maior estabilidade.
     return [
-      'https://vid.puffyan.us',
-      'https://iv.ggtyler.dev',
-      'https://invidious.sethforprivacy.com', // Novo provedor mais estável
-      'https://invidious.io.lol', // Novo provedor mais estável
+      'https://invidious.sethforprivacy.com',
+      'https://yewtu.be', // Provedor conhecido por ser estável
+      'https://inv.tux.pizza', // Provedor conhecido por ser estável
     ];
   }
 }
@@ -61,7 +60,8 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
     try {
       console.log(`[LOG] Tentando instância: ${url}`);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 7000);
+      // Aumentando o timeout para 10 segundos
+      const timeoutId = setTimeout(() => controller.abort(), 10000); 
 
       const response = await fetch(url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
