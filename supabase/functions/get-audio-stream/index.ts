@@ -8,13 +8,20 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
+  console.log("get-audio-stream function invoked.");
+
   if (req.method === 'OPTIONS') {
+    console.log("Handling OPTIONS request.");
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    console.log("Parsing request body...");
     const { videoId } = await req.json();
+    console.log(`Received videoId: ${videoId}`);
+
     if (!videoId) {
+      console.error("Error: videoId is required.");
       return new Response(JSON.stringify({ error: 'videoId is required' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
@@ -22,32 +29,47 @@ serve(async (req: Request) => {
     }
 
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    console.log(`Processing video URL: ${videoUrl}`);
+
+    console.log("Fetching video info from ytdl...");
     const info = await ytdl.getInfo(videoUrl);
+    console.log("Successfully fetched video info.");
+
+    console.log("Filtering for audio-only formats...");
     const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
+    console.log(`Found ${audioFormats.length} audio-only formats.`);
     
     if (audioFormats.length === 0) {
+      console.error("No audio-only formats found for this video.");
       return new Response(JSON.stringify({ error: 'No audio-only formats found' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 404,
       });
     }
 
+    console.log("Sorting audio formats by bitrate...");
     const bestAudio = audioFormats.sort((a: any, b: any) => (b.audioBitrate || 0) - (a.audioBitrate || 0))[0];
 
     if (!bestAudio || !bestAudio.url) {
+        console.error("Could not find a valid audio URL after sorting.");
         return new Response(JSON.stringify({ error: 'Could not find a valid audio URL' }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 404,
         });
     }
 
+    console.log(`Found best audio URL. Sending successful response.`);
+
     return new Response(JSON.stringify({ audioUrl: bestAudio.url }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (error) {
+    console.error("An error occurred in the get-audio-stream function:");
     console.error(error);
     const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Error message: ${errorMessage}`);
+    
     return new Response(JSON.stringify({ error: `Failed to process video: ${errorMessage}` }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

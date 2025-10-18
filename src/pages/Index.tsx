@@ -21,6 +21,7 @@ const Index = () => {
     e.preventDefault();
     if (!searchTerm.trim() || isLoading) return;
 
+    console.log(`Starting search for: "${searchTerm}"`);
     setIsLoading(true);
     setSearchResults([]);
 
@@ -29,19 +30,28 @@ const Index = () => {
         body: { query: searchTerm },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase function invocation error (search):", error);
+        throw error;
+      }
+      
+      console.log("Search function response data:", data);
+
       if (data) setSearchResults(data);
 
     } catch (error: any) {
-      console.error("Error searching for music:", error);
+      console.error("Caught error during search:", error);
       showError(`Erro ao buscar: ${error.message || 'Ocorreu um erro desconhecido'}`);
     } finally {
       setIsLoading(false);
+      console.log("Search finished.");
     }
   };
 
   const handlePlaySong = async (song: Song) => {
+    console.log(`Attempting to play song: "${song.title}" (ID: ${song.id})`);
     if (currentSong?.id === song.id) {
+      console.log("Toggling play/pause for the current song.");
       setIsPlaying(!isPlaying);
       return;
     }
@@ -51,27 +61,36 @@ const Index = () => {
     setAudioUrl(null);
     setIsPlaying(false);
     const toastId = showLoading("Carregando áudio...");
+    console.log("Fetching audio stream...");
 
     try {
       const { data, error } = await supabase.functions.invoke('get-audio-stream', {
         body: { videoId: song.id },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase function invocation error (get-audio-stream):", error);
+        throw error;
+      }
+
+      console.log("Audio stream function response data:", data);
 
       if (data && data.audioUrl) {
+        console.log("Received audio URL. Setting state.");
         setAudioUrl(data.audioUrl);
         setIsPlaying(true);
       } else {
+        console.error("Audio URL not found in response data:", data);
         throw new Error("Não foi possível obter o link do áudio.");
       }
     } catch (error: any) {
-      console.error("Error getting audio stream:", error);
+      console.error("Caught error during audio fetch:", error);
       showError(`Erro ao carregar áudio: ${error.message}`);
       setCurrentSong(null);
     } finally {
       setIsSongLoading(false);
       dismissToast(toastId);
+      console.log("Audio fetch process finished.");
     }
   };
 
