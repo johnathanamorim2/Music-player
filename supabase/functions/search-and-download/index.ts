@@ -15,75 +15,42 @@ interface SearchResult {
 }
 
 async function searchYouTube(query: string): Promise<SearchResult[]> {
-  console.log(`[LOG] Iniciando busca no YouTube por: "${query}"`);
-  // Lista de instâncias drasticamente expandida e diversificada para máxima resiliência.
-  // Estes são serviços públicos e sua estabilidade pode variar, por isso usamos uma lista grande.
-  const invidiousInstances = [
-    'https://invidious.io.lol',
-    'https://inv.n8p.xyz',
-    'https://vid.puffyan.us',
-    'https://iv.ggtyler.dev',
-    'https://yewtu.be',
-    'https://invidious.projectsegfau.lt',
-    'https://invidious.protokolla.fi',
-    'https://invidious.slipfox.xyz',
-    'https://invidious.weblibre.org',
-    'https://invidious.lunar.icu',
-    'https://invidious.privacydev.net',
-    'https://invidious.einfachzocken.eu',
-  ];
-  let lastError: Error | null = null;
+  console.log(`[LOG] Iniciando busca no YouTube por: "${query}" via api.invidious.io`);
+  const baseUrl = 'https://api.invidious.io';
+  const url = `${baseUrl}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
+  
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // Timeout de 8 segundos
 
-  for (const instance of invidiousInstances) {
-    const url = `${instance}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
-    try {
-      console.log(`[LOG] Tentando instância: ${url}`);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000); // Timeout de 6 segundos
-      
-      const response = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
 
-      console.log(`[LOG] Resposta da instância ${instance}: Status ${response.status}`);
-      if (response.ok) {
-        let data;
-        try {
-          const responseClone = response.clone();
-          const text = await responseClone.text();
-          if (text.trim().startsWith('<')) {
-            throw new Error('A resposta é HTML, não JSON.');
-          }
-          data = await response.json();
-        } catch (jsonError) {
-          console.warn(`[WARN] Instância ${instance} retornou uma resposta inválida (não-JSON). Pulando. Erro: ${jsonError.message}`);
-          lastError = new Error(`A instância ${instance} retornou dados inválidos.`);
-          continue;
-        }
-
-        console.log(`[LOG] Sucesso com ${instance}, ${data.length} resultados encontrados.`);
-        if (data && Array.isArray(data) && data.length > 0) {
-          return data.slice(0, 12).map((video: any) => ({
-            id: video.videoId,
-            title: video.title,
-            artist: video.author || 'Unknown Artist',
-            thumbnail: video.videoThumbnails?.find((t: any) => t.quality === 'mqdefault')?.url || `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`,
-            duration: video.lengthSeconds || 0,
-          }));
-        }
-      } else {
-        console.warn(`[WARN] Instância ${instance} retornou status não-OK: ${response.status}`);
-        lastError = new Error(`A instância ${instance} retornou status ${response.status}`);
-      }
-    } catch (err) {
-      lastError = err as Error;
-      console.warn(`[WARN] Falha na instância ${instance}:`, err instanceof Error ? err.message : 'Erro desconhecido');
+    console.log(`[LOG] Resposta da API: Status ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`A API retornou um status não-OK: ${response.status}`);
     }
+
+    const data = await response.json();
+    console.log(`[LOG] Sucesso, ${data.length} resultados encontrados.`);
+    
+    if (data && Array.isArray(data)) {
+      return data.slice(0, 12).map((video: any) => ({
+        id: video.videoId,
+        title: video.title,
+        artist: video.author || 'Unknown Artist',
+        thumbnail: video.videoThumbnails?.find((t: any) => t.quality === 'mqdefault')?.url || `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`,
+        duration: video.lengthSeconds || 0,
+      }));
+    }
+    return [];
+  } catch (err) {
+    console.error('[ERROR] Falha ao buscar na API Invidious:', err);
+    throw new Error(`Não foi possível buscar músicas. O serviço pode estar instável. (Detalhe: ${err.message})`);
   }
-  console.error('[ERROR] Todas as instâncias falharam. Último erro:', lastError);
-  throw new Error(`Não foi possível buscar músicas. O serviço pode estar instável. (Detalhe: ${lastError?.message || 'Todos os provedores falharam'})`);
 }
 
 serve(async (req) => {
