@@ -14,52 +14,24 @@ interface SearchResult {
   duration: number;
 }
 
-async function getHealthyInstances(): Promise<string[]> {
-  try {
-    console.log('[LOG] Buscando lista de instâncias saudáveis de api.invidious.io...');
-    const response = await fetch('https://api.invidious.io/instances.json');
-    if (!response.ok) {
-      throw new Error(`Não foi possível buscar a lista de provedores: Status ${response.status}`);
-    }
-    const instances = await response.json();
-    
-    const healthyInstances = instances
-      .filter((instance: any) => {
-        const details = instance[1];
-        return details &&
-               details.type === 'https' &&
-               details.api === true &&
-               details.cors === true &&
-               details.monitor?.down === false;
-      })
-      .map((instance: any) => instance[1].uri);
+// Lista de instâncias Invidious fornecida pelo usuário
+const invidiousInstances = [
+  'https://yewtu.be',
+  'https://inv.us.projectsegfau.lt',
+  'https://y.com.sb',
+  'https://invidious.io.lol',
+  'https://iv.ggtyler.dev',
+  'https://invidious.epicsite.xyz'
+];
 
-    console.log(`[LOG] Encontradas ${healthyInstances.length} instâncias saudáveis.`);
-    if (healthyInstances.length === 0) {
-      throw new Error('Nenhum provedor de busca saudável está disponível no momento.');
-    }
-    return healthyInstances;
-  } catch (error) {
-    console.error('[ERROR] Falha ao obter instâncias saudáveis. Usando lista de fallback:', error);
-    // Lista de fallback revisada para maior estabilidade.
-    return [
-      'https://invidious.sethforprivacy.com',
-      'https://yewtu.be', 
-      'https://invidious.projectsegfau.lt', 
-      'https://inv.riverside.rocks', 
-    ];
-  }
-}
+// Tempo limite de 10 segundos por instância
+const TIMEOUT_MS = 10000; 
 
 async function searchYouTube(query: string): Promise<SearchResult[]> {
   console.log(`[LOG] Iniciando busca no YouTube por: "${query}"`);
-  const healthyInstances = await getHealthyInstances();
   let lastError: Error | null = null;
 
-  // Aumentando o timeout para 20 segundos (20000 ms)
-  const TIMEOUT_MS = 20000; 
-
-  for (const instance of healthyInstances) {
+  for (const instance of invidiousInstances) {
     const url = `${instance}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
     try {
       console.log(`[LOG] Tentando instância: ${url}`);
@@ -102,7 +74,7 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
     }
   }
 
-  console.error('[ERROR] Todas as instâncias saudáveis falharam. Último erro:', lastError);
+  console.error('[ERROR] Todas as instâncias falharam. Último erro:', lastError);
   throw new Error(`Não foi possível buscar músicas. O serviço pode estar instável. (Detalhe: ${lastError?.message || 'Todos os provedores falharam'})`);
 }
 
