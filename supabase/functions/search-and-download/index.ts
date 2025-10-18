@@ -44,8 +44,8 @@ async function getHealthyInstances(): Promise<string[]> {
     // Lista de fallback revisada para maior estabilidade.
     return [
       'https://invidious.sethforprivacy.com',
-      'https://yewtu.be', // Provedor conhecido por ser estável
-      'https://inv.tux.pizza', // Provedor conhecido por ser estável
+      'https://yewtu.be', 
+      'https://inv.tux.pizza', 
     ];
   }
 }
@@ -60,7 +60,6 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
     try {
       console.log(`[LOG] Tentando instância: ${url}`);
       const controller = new AbortController();
-      // Aumentando o timeout para 10 segundos
       const timeoutId = setTimeout(() => controller.abort(), 10000); 
 
       const response = await fetch(url, {
@@ -74,8 +73,6 @@ async function searchYouTube(query: string): Promise<SearchResult[]> {
         try {
           data = await response.json();
         } catch (jsonError) {
-          // Se a resposta for 200 OK, mas o corpo não for JSON (ex: página de erro HTML), 
-          // tratamos como falha e tentamos a próxima instância.
           lastError = new Error(`Instância ${instance} retornou conteúdo inválido (não-JSON).`);
           console.warn(`[WARN] Falha na análise JSON para ${instance}.`, jsonError);
           continue; 
@@ -120,14 +117,14 @@ serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Não autorizado: Token ausente' }), { status: 401, headers: jsonHeaders });
+      return new Response(JSON.stringify({ success: false, error: 'Não autorizado: Token ausente' }), { status: 401, headers: jsonHeaders });
     }
     
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: `Falha na autenticação: ${authError?.message}` }), { status: 401, headers: jsonHeaders });
+      return new Response(JSON.stringify({ success: false, error: `Falha na autenticação: ${authError?.message}` }), { status: 401, headers: jsonHeaders });
     }
 
     const body = await req.json();
@@ -136,29 +133,39 @@ serve(async (req) => {
     if (action === 'search') {
       if (!query) throw new Error('O parâmetro "query" é obrigatório para a busca');
       const results = await searchYouTube(query);
-      return new Response(JSON.stringify(results), { headers: jsonHeaders });
+      return new Response(JSON.stringify({ success: true, results }), { headers: jsonHeaders });
     } else if (action === 'download') {
       if (!videoId) throw new Error('O parâmetro "videoId" é obrigatório para o download');
+      
+      // 1. Check if song already exists
       const { data: existingSong } = await supabase.from('songs').select('id').eq('youtube_id', videoId).eq('user_id', user.id).maybeSingle();
       if (existingSong) {
-        return new Response(JSON.stringify({ error: 'Música já existe na biblioteca' }), { status: 409, headers: jsonHeaders });
+        return new Response(JSON.stringify({ success: false, error: 'Música já existe na biblioteca' }), { status: 409, headers: jsonHeaders });
       }
+      
+      // 2. Search for video info
       const searchResults = await searchYouTube(videoId);
       if (!searchResults || searchResults.length === 0) throw new Error('Vídeo não encontrado');
       const videoInfo = searchResults[0];
+      
+      // 3. Insert into database
+      const audioUrl = `https://www.youtube.com/watch?v=${videoId}`; // Usando URL do YouTube como audio_url
+      
       const { data: song, error } = await supabase.from('songs').insert({
         title: videoInfo.title, artist: videoInfo.artist, duration: videoInfo.duration,
-        thumbnail_url: videoInfo.thumbnail, youtube_id: videoId, user_id: user.id,
+        thumbnail_url: videoInfo.thumbnail, youtube_id: videoId, user_id: user.id, audio_url: audioUrl,
       }).select().single();
+      
       if (error) throw error;
-      return new Response(JSON.stringify(song), { headers: jsonHeaders });
+      
+      return new Response(JSON.stringify({ success: true, song }), { headers: jsonHeaders });
     }
 
-    return new Response(JSON.stringify({ error: 'Ação inválida' }), { status: 400, headers: jsonHeaders });
+    return new Response(JSON.stringify({ success: false, error: 'Ação inválida' }), { status: 400, headers: jsonHeaders });
 
   } catch (error) {
     console.error('--- [FATAL] Erro não tratado na função ---', error);
     const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido no servidor.';
-    return new Response(JSON.stringify({ error: errorMessage }), { status: 500, headers: jsonHeaders });
+    return new Response(JSON.stringify({ success: false, error: errorMessage }), { status: 500, headers: jsonHeaders });
   }
 });

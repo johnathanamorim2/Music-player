@@ -5,5 +5,13 @@ export interface Song {
   artist: string;
   thumbnail: string;
   duration: number;
-  db_id?: string; // The UUID from the database, if it's in the library
+  audio_url?: string; // URL do YouTube (para reprodução)
+  db_id?: string; // O UUID da tabela 'songs' no banco de dados
+}
+
+export interface Playlist {
+  id: string;
+  name: string;
+  user_id: string;
+  song_count: number;
 }

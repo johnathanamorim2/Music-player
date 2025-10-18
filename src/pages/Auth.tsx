@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
-const Login = () => {
+const AuthPage = () => {
   const { session } = useAuth();
 
   if (session) {
@@ -19,7 +19,7 @@ const Login = () => {
             Music Finder
           </h1>
           <p className="mt-2 text-center text-sm text-gray-400">
-            Faça login para salvar suas músicas
+            Faça login ou registre-se para salvar suas músicas
           </p>
         </div>
         <Auth
@@ -33,4 +33,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default AuthPage;

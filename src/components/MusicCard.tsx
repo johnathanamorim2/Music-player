@@ -1,21 +1,30 @@
-import { Play, Download, Loader2 } from "lucide-react";
+import { Play, Download, Loader2, Heart, ListMusic, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Song } from "@/types";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface MusicCardProps {
   song: Song;
   onPlay?: (song: Song) => void;
   onDownload?: (song: Song) => void;
+  onDelete?: (song: Song) => void;
+  onToggleFavorite?: (song: Song) => void;
+  onAddToPlaylist?: (song: Song) => void;
   isDownloading?: boolean;
-  variant: "search" | "library";
+  isFavorite?: boolean;
+  variant: "search" | "library" | "playlist";
 }
 
 export const MusicCard = ({
   song,
   onPlay,
   onDownload,
+  onDelete,
+  onToggleFavorite,
+  onAddToPlaylist,
   isDownloading,
+  isFavorite = false,
   variant,
 }: MusicCardProps) => {
   const { title, artist, thumbnail, duration } = song;
@@ -27,20 +36,72 @@ export const MusicCard = ({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleAction = () => {
+  const handlePrimaryAction = () => {
     if (variant === 'search' && onDownload) {
       onDownload(song);
-    } else if (variant === 'library' && onPlay) {
+    } else if ((variant === 'library' || variant === 'playlist') && onPlay) {
       onPlay(song);
     }
   };
 
-  const actionIcon = variant === 'search' 
+  const primaryActionIcon = variant === 'search' 
     ? <Download size={24} /> 
     : <Play size={24} className="ml-0.5" />;
 
+  const renderLibraryActions = () => (
+    <div className="absolute top-2 right-2 flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      {onToggleFavorite && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              onClick={(e) => { e.stopPropagation(); onToggleFavorite(song); }}
+              className={`w-8 h-8 rounded-full ${isFavorite ? 'text-red-500 hover:bg-gray-700' : 'text-white hover:bg-gray-700'}`}
+            >
+              <Heart size={16} fill={isFavorite ? 'currentColor' : 'none'} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isFavorite ? "Remover dos Favoritos" : "Adicionar aos Favoritos"}
+          </TooltipContent>
+        </Tooltip>
+      )}
+      {onAddToPlaylist && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              onClick={(e) => { e.stopPropagation(); onAddToPlaylist(song); }}
+              className="w-8 h-8 rounded-full text-white hover:bg-gray-700"
+            >
+              <ListMusic size={16} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Adicionar à Playlist</TooltipContent>
+        </Tooltip>
+      )}
+      {onDelete && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              onClick={(e) => { e.stopPropagation(); onDelete(song); }}
+              className="w-8 h-8 rounded-full text-red-400 hover:bg-gray-700"
+            >
+              <Trash2 size={16} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Remover da Biblioteca</TooltipContent>
+        </Tooltip>
+      )}
+    </div>
+  );
+
   return (
-    <Card className="bg-gray-800 border-transparent text-white overflow-hidden group relative">
+    <Card className="bg-gray-800 border-transparent text-white overflow-hidden group relative cursor-pointer" onClick={handlePrimaryAction}>
       <CardContent className="p-4">
         <div className="aspect-square relative mb-4">
           <img
@@ -56,12 +117,14 @@ export const MusicCard = ({
             </div>
           ) : (
             <button
-              onClick={handleAction}
-              className="absolute bottom-2 right-2 bg-purple-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-y-0 translate-y-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              onClick={(e) => { e.stopPropagation(); handlePrimaryAction(); }}
+              className="absolute bottom-2 right-2 bg-purple-600 hover:bg-purple-500 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-y-0 translate-y-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
             >
-              {actionIcon}
+              {primaryActionIcon}
             </button>
           )}
+          
+          {(variant === 'library' || variant === 'playlist') && renderLibraryActions()}
         </div>
         <p className="font-semibold truncate">{title}</p>
         <div className="flex justify-between items-baseline">
