@@ -41,11 +41,12 @@ async function getHealthyInstances(): Promise<string[]> {
     return healthyInstances;
   } catch (error) {
     console.error('[ERROR] Falha ao obter instâncias saudáveis. Usando lista de fallback:', error);
-    // Retorna uma lista de fallback em caso de falha na API de instâncias ou se a lista dinâmica estiver vazia/inválida.
+    // Lista de fallback revisada para maior estabilidade.
     return [
       'https://vid.puffyan.us',
       'https://iv.ggtyler.dev',
-      'https://invidious.snopyta.org',
+      'https://invidious.sethforprivacy.com', // Novo provedor mais estável
+      'https://invidious.io.lol', // Novo provedor mais estável
     ];
   }
 }
