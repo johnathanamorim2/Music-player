@@ -8,24 +8,20 @@ import { SearchResults } from "@/components/SearchResults";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { Library } from "@/components/Library";
 import { supabase } from "@/integrations/supabase/client";
-import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
+import { showError, showSuccess } from "@/utils/toast";
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [library, setLibrary] = useState<Song[]>([]);
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSongLoading, setIsSongLoading] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim() || isLoading) return;
 
-    console.log(`Starting search for: "${searchTerm}"`);
     setIsLoading(true);
     setSearchResults([]);
 
@@ -34,22 +30,14 @@ const Index = () => {
         body: { query: searchTerm },
       });
 
-      if (error) {
-        console.error("Supabase function invocation error (search):", error);
-        throw error;
-      }
-      
-      console.log("Search function response data:", data);
-
+      if (error) throw error;
       if (data) setSearchResults(data);
 
     } catch (error: any) {
-      console.error("Caught error during search:", error);
-      const errorMessage = error.context?.error || error.message || 'Ocorreu um erro desconhecido';
+      const errorMessage = error.context?.error?.message || error.message || 'Ocorreu um erro desconhecido';
       showError(`Erro ao buscar: ${errorMessage}`);
     } finally {
       setIsLoading(false);
-      console.log("Search finished.");
     }
   };
 
@@ -67,56 +55,34 @@ const Index = () => {
     setDownloadingId(null);
   };
 
-  const handlePlaySong = async (song: Song) => {
-    console.log(`Attempting to play song: "${song.title}" (ID: ${song.id})`);
-    if (currentSong?.id === song.id) {
-      console.log("Toggling play/pause for the current song.");
-      setIsPlaying(!isPlaying);
-      return;
-    }
-
-    setIsSongLoading(true);
+  const handlePlaySong = (song: Song) => {
     setCurrentSong(song);
-    setAudioUrl(null);
-    setIsPlaying(false);
-    const toastId = showLoading("Carregando áudio...");
-    console.log("Fetching audio stream URL via proxy...");
-
-    try {
-      const { data, error } = await supabase.functions.invoke('get-audio-stream', {
-        body: { videoId: song.id },
-      });
-
-      if (error) {
-        console.error("Supabase function invocation error (audio):", error);
-        throw error;
-      }
-
-      console.log("Successfully received audio URL response.");
-      const { audioUrl: directAudioUrl } = data;
-      
-      if (!directAudioUrl) {
-        throw new Error("Function did not return an audio URL.");
-      }
-      
-      console.log("Setting direct audio URL for playback.");
-      setAudioUrl(directAudioUrl);
-      setIsPlaying(true);
-
-    } catch (error: any) {
-      console.error("Caught error during audio fetch:", error);
-      const errorMessage = error.context?.error || error.message || 'Ocorreu um erro desconhecido';
-      showError(`Erro ao carregar áudio: ${errorMessage}`);
-      setCurrentSong(null);
-    } finally {
-      setIsSongLoading(false);
-      dismissToast(toastId);
-      console.log("Audio fetch process finished.");
-    }
   };
 
-  const handlePlayPause = (playing: boolean) => {
-    setIsPlaying(playing);
+  const handleClosePlayer = () => {
+    setCurrentSong(null);
+  };
+
+  const handleNextSong = () => {
+    if (!currentSong || library.length === 0) return;
+    const currentIndex = library.findIndex(song => song.id === currentSong.id);
+    if (currentIndex === -1 && library.length > 0) {
+      setCurrentSong(library[0]);
+      return;
+    }
+    const nextIndex = (currentIndex + 1) % library.length;
+    setCurrentSong(library[nextIndex]);
+  };
+
+  const handlePreviousSong = () => {
+    if (!currentSong || library.length === 0) return;
+    const currentIndex = library.findIndex(song => song.id === currentSong.id);
+    if (currentIndex === -1 && library.length > 0) {
+      setCurrentSong(library[0]);
+      return;
+    }
+    const previousIndex = (currentIndex - 1 + library.length) % library.length;
+    setCurrentSong(library[previousIndex]);
   };
 
   return (
@@ -163,10 +129,9 @@ const Index = () => {
       </div>
       <MusicPlayer
         currentSong={currentSong}
-        isPlaying={isPlaying}
-        audioUrl={audioUrl}
-        isSongLoading={isSongLoading}
-        onPlayPause={handlePlayPause}
+        onClose={handleClosePlayer}
+        onNext={handleNextSong}
+        onPrevious={handlePreviousSong}
       />
     </div>
   );
