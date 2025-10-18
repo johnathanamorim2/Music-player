@@ -11,9 +11,9 @@ export const Header = () => {
   };
 
   return (
-    <header className="flex items-center justify-end mb-12 pt-4">
-      {/* Título visível apenas em telas pequenas, pois a Sidebar tem o título principal */}
-      <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600 md:hidden mr-auto">
+    <header className="flex items-center justify-between mb-12 pt-4">
+      {/* Título principal, agora sempre visível */}
+      <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600 mr-auto">
         Music Finder
       </h1>
       
