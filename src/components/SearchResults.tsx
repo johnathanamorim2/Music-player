@@ -1,14 +1,14 @@
 import { Song } from "@/types";
 import { SongCard } from "./SongCard";
-import { Music, Loader2 } from "lucide-react";
+import { Music, Loader2, Download } from "lucide-react";
 
 interface SearchResultsProps {
   results: Song[];
-  onPlaySong: (song: Song) => void;
+  onDownloadSong: (song: Song) => void;
   isLoading: boolean;
 }
 
-export const SearchResults = ({ results, onPlaySong, isLoading }: SearchResultsProps) => {
+export const SearchResults = ({ results, onDownloadSong, isLoading }: SearchResultsProps) => {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center text-gray-500 h-64">
@@ -30,7 +30,12 @@ export const SearchResults = ({ results, onPlaySong, isLoading }: SearchResultsP
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
       {results.map((song) => (
-        <SongCard key={song.id} song={song} onPlay={onPlaySong} />
+        <SongCard
+          key={song.id}
+          song={song}
+          onAction={onDownloadSong}
+          actionIcon={<Download size={24} />}
+        />
       ))}
     </div>
   );

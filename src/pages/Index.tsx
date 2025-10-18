@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Loader2 } from "lucide-react";
 import { Song } from "@/types";
 import { SearchResults } from "@/components/SearchResults";
 import { MusicPlayer } from "@/components/MusicPlayer";
+import { Library } from "@/components/Library";
 import { supabase } from "@/integrations/supabase/client";
-import { showError, showLoading, dismissToast } from "@/utils/toast";
+import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
+  const [library, setLibrary] = useState<Song[]>([]);
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +49,15 @@ const Index = () => {
       setIsLoading(false);
       console.log("Search finished.");
     }
+  };
+
+  const handleDownloadSong = (song: Song) => {
+    if (library.some(s => s.id === song.id)) {
+      showError("Essa música já está na sua biblioteca.");
+      return;
+    }
+    setLibrary(prevLibrary => [...prevLibrary, song]);
+    showSuccess(`"${song.title}" foi adicionada à sua biblioteca!`);
   };
 
   const handlePlaySong = async (song: Song) => {
@@ -121,7 +133,18 @@ const Index = () => {
         </header>
 
         <main>
-          <SearchResults results={searchResults} onPlaySong={handlePlaySong} isLoading={isLoading} />
+          <Tabs defaultValue="search" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8 bg-gray-800 text-gray-400">
+              <TabsTrigger value="search">Buscar</TabsTrigger>
+              <TabsTrigger value="library">Minha Biblioteca</TabsTrigger>
+            </TabsList>
+            <TabsContent value="search">
+              <SearchResults results={searchResults} onDownloadSong={handleDownloadSong} isLoading={isLoading} />
+            </TabsContent>
+            <TabsContent value="library">
+              <Library songs={library} onPlaySong={handlePlaySong} />
+            </TabsContent>
+          </Tabs>
         </main>
       </div>
       <MusicPlayer
