@@ -1,6 +1,7 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // @ts-ignore
-import Innertube from 'https://esm.sh/youtubei.js@7.0.0';
+import play from "npm:play-dl@1.9.7";
+import { Readable } from "node:stream";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,7 +9,7 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  console.log("get-audio-stream function invoked with youtubei.js (re-init on each call).");
+  console.log("get-audio-stream function invoked with play-dl and Deno's Node compatibility layer.");
 
   if (req.method === 'OPTIONS') {
     console.log("Handling OPTIONS request.");
@@ -16,9 +17,6 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Initialize the library inside the handler to ensure a fresh state for every request.
-    const youtube = await Innertube.create();
-    
     console.log("Parsing request body...");
     const { videoId } = await req.json();
     console.log(`Received videoId for streaming: ${videoId}`);
@@ -27,22 +25,28 @@ serve(async (req: Request) => {
       throw new Error('videoId is required');
     }
 
-    console.log(`Fetching audio stream for videoId: ${videoId}`);
+    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    console.log(`Fetching stream for URL: ${videoUrl}`);
     
-    const stream = await youtube.download(videoId, {
-      type: 'audio',
-      quality: 'best',
-      format: 'webm'
+    const streamData = await play.stream(videoUrl, {
+        quality: 2, // 0: low, 1: medium, 2: high
     });
 
-    console.log("Successfully got stream from youtubei.js.");
+    const nodeStream = streamData.stream;
+    // Convert Node.js stream to a Web API ReadableStream that Deno can serve
+    const webStream = Readable.toWeb(nodeStream as any);
+    
+    console.log(`Successfully created stream of type ${streamData.type}.`);
 
     const responseHeaders = new Headers(corsHeaders);
-    responseHeaders.set('Content-Type', 'audio/webm');
+    responseHeaders.set('Content-Type', streamData.type);
+    if (streamData.content_length) {
+        responseHeaders.set('Content-Length', String(streamData.content_length));
+    }
     responseHeaders.set('Cache-Control', 'no-cache');
 
     console.log("Streaming audio back to client.");
-    return new Response(stream, {
+    return new Response(webStream, {
       headers: responseHeaders,
       status: 200,
     });

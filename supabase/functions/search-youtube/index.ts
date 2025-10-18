@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // @ts-ignore
 import YouTube from 'https://esm.sh/youtube-sr@4.3.4';
 
