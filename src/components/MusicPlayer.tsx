@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Play, Pause, SkipBack, SkipForward, Volume2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { useMusicPlayer } from "@/context/MusicPlayerContext";
+import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
 
 declare global {
   interface Window {
