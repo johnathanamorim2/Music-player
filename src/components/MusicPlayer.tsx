@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
 import { useOfflineAudio } from "@/hooks/useOfflineAudio";
-import { cn } from "@/lib/utils"; // Importando cn para classes condicionais
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile"; // Importando useIsMobile
 
 declare global {
   interface Window {
@@ -15,6 +16,7 @@ declare global {
 
 export const MusicPlayer = () => {
   const { currentSong, playlist, playNext, playPrevious, closePlayer, isShuffling, toggleShuffle } = useMusicPlayer();
+  const isMobile = useIsMobile(); // Usando o hook de mobile
   
   // YouTube Player Refs
   const youtubePlayerRef = useRef<any>(null);
@@ -33,6 +35,7 @@ export const MusicPlayer = () => {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(50);
   const [isLoading, setIsLoading] = useState(true);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false); // Novo estado para mobile
 
   // 1. Inicialização do YouTube API (apenas se necessário)
   useEffect(() => {
@@ -207,7 +210,7 @@ export const MusicPlayer = () => {
       else audioRef.current.play().catch(e => console.error("Erro ao tentar reproduzir:", e));
       setIsPlaying(!isPlaying);
     } else if (!isLocalMode && youtubePlayerRef.current) {
-      if (isPlaying) youtubePlayerRef.current.pauseVideo();
+      if (isPlaying) youtubePlayerPlayerRef.current.pauseVideo();
       else youtubePlayerRef.current.playVideo();
     }
   };
@@ -253,8 +256,20 @@ export const MusicPlayer = () => {
         }} 
       />
       
-      <div className="container mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
+      <div className="container mx-auto flex flex-col lg:flex-row items-center justify-between gap-4 relative">
         
+        {/* Botão de Fechar (Mobile: Canto Superior Esquerdo) */}
+        {isMobile && (
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            onClick={closePlayer} 
+            className="absolute top-[-30px] left-0 text-gray-400 hover:text-purple-400 transition-colors w-8 h-8"
+          >
+            <X size={20} />
+          </Button>
+        )}
+
         {/* 1. Info da Música (Esquerda) */}
         <div className="flex items-center gap-4 w-full lg:w-1/4">
           <img src={currentSong.thumbnail} alt={currentSong.title} className="w-14 h-14 rounded-md flex-shrink-0" />
@@ -299,13 +314,40 @@ export const MusicPlayer = () => {
 
         {/* 3. Controles de Volume e Fechar (Direita) */}
         <div className="flex items-center gap-4 w-full lg:w-1/4 justify-between lg:justify-end">
-          <div className="flex items-center gap-2 w-full lg:w-auto">
-            <Volume2 size={20} className="flex-shrink-0" />
-            <Slider value={[volume]} max={100} step={1} onValueChange={handleVolumeChange} className="w-full lg:w-24" />
+          {/* Botão de Volume (Sempre visível) */}
+          <div className={cn("flex items-center gap-2 w-full lg:w-auto", isMobile && "justify-end")}>
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              onClick={() => isMobile ? setShowVolumeSlider(prev => !prev) : undefined}
+              className="hover:text-purple-400 transition-colors flex-shrink-0 text-gray-400 lg:text-white"
+            >
+              <Volume2 size={20} />
+            </Button>
+            
+            {/* Slider de Volume (Visível no Desktop, Condicional no Mobile) */}
+            <div className={cn(
+              "w-full lg:w-24",
+              isMobile && "absolute bottom-full right-0 mb-2 p-2 bg-gray-800 rounded-md shadow-lg transition-opacity duration-300",
+              isMobile && !showVolumeSlider && "opacity-0 pointer-events-none",
+              isMobile && showVolumeSlider && "opacity-100"
+            )}>
+              <Slider 
+                value={[volume]} 
+                max={100} 
+                step={1} 
+                onValueChange={handleVolumeChange} 
+                className={cn("w-full", isMobile && "w-32")}
+              />
+            </div>
           </div>
-          <Button size="icon" variant="ghost" onClick={closePlayer} className="hover:text-purple-400 transition-colors flex-shrink-0">
-            <X size={20} />
-          </Button>
+          
+          {/* Botão de Fechar (Apenas Desktop) */}
+          {!isMobile && (
+            <Button size="icon" variant="ghost" onClick={closePlayer} className="hover:text-purple-400 transition-colors flex-shrink-0">
+              <X size={20} />
+            </Button>
+          )}
         </div>
       </div>
     </div>
