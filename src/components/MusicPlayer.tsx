@@ -262,9 +262,10 @@ export const MusicPlayer = () => {
         {isMobile && (
           <Button 
             size="icon" 
-            variant="secondary" // Usando secondary para dar um fundo sutil
+            variant="secondary"
             onClick={closePlayer} 
-            className="absolute top-[-40px] left-4 text-gray-300 hover:text-white bg-gray-800/70 hover:bg-gray-700/90 transition-colors w-8 h-8 rounded-full shadow-lg"
+            // Ajustado para left-0 para alinhar com a borda do container
+            className="absolute top-[-40px] left-0 text-gray-300 hover:text-white bg-gray-800/70 hover:bg-gray-700/90 transition-colors w-8 h-8 rounded-full shadow-lg"
           >
             <X size={18} />
           </Button>
