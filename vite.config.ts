@@ -21,8 +21,8 @@ export default defineConfig(() => ({
       },
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png', 'placeholder.svg'],
       manifest: {
-        name: 'Music Finder PWA',
-        short_name: 'MusicFinder',
+        name: 'Leccor Music PWA',
+        short_name: 'LeccorMusic',
         description: 'Encontre e salve suas músicas favoritas para ouvir offline.',
         theme_color: '#5b21b6', // Cor roxa (purple-700)
         background_color: '#111827', // Cor de fundo (gray-900)

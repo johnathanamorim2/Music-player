@@ -19,7 +19,7 @@ export const Header = () => {
           className="mr-3 text-purple-400" 
         />
         <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-          Music Finder
+          Leccor Music
         </h1>
       </div>
       
