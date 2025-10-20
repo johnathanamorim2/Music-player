@@ -262,11 +262,11 @@ export const MusicPlayer = () => {
         {isMobile && (
           <Button 
             size="icon" 
-            variant="ghost" 
+            variant="secondary" // Usando secondary para dar um fundo sutil
             onClick={closePlayer} 
-            className="absolute top-[-30px] left-0 text-gray-400 hover:text-purple-400 transition-colors w-8 h-8"
+            className="absolute top-[-40px] left-4 text-gray-300 hover:text-white bg-gray-800/70 hover:bg-gray-700/90 transition-colors w-8 h-8 rounded-full shadow-lg"
           >
-            <X size={20} />
+            <X size={18} />
           </Button>
         )}
 
@@ -320,7 +320,7 @@ export const MusicPlayer = () => {
                 onClick={() => isMobile ? setShowVolumeSlider(prev => !prev) : undefined}
                 className={cn(
                   "hover:text-purple-400 transition-colors text-gray-400 lg:text-white w-8 h-8",
-                  !isMobile && "hidden" // Esconde o botão de volume no desktop, pois o slider está sempre visível na seção 3
+                  !isMobile && "hidden"
                 )}
               >
                 <Volume2 size={20} />
@@ -352,7 +352,12 @@ export const MusicPlayer = () => {
             <Volume2 size={20} className="flex-shrink-0" />
             <Slider value={[volume]} max={100} step={1} onValueChange={handleVolumeChange} className="w-full lg:w-24" />
           </div>
-          <Button size="icon" variant="ghost" onClick={closePlayer} className="hover:text-purple-400 transition-colors flex-shrink-0">
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            onClick={closePlayer} 
+            className="hover:text-purple-400 transition-colors flex-shrink-0"
+          >
             <X size={20} />
           </Button>
         </div>
