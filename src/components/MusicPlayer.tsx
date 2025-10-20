@@ -43,12 +43,43 @@ export const MusicPlayer = () => {
   const volumeControlRef = useRef<HTMLDivElement>(null);
 
 
+  // --- Funções de Controle Explícitas (useCallback para Media Session) ---
+
+  const handlePlay = useCallback(() => {
+    if (isLocalMode && audioRef.current) {
+      audioRef.current.play().catch(e => console.error("Erro ao tentar reproduzir:", e));
+      setIsPlaying(true);
+    } else if (!isLocalMode && youtubePlayerRef.current) {
+      youtubePlayerRef.current.playVideo();
+      // O estado isPlaying será atualizado pelo onStateChange do YouTube
+    }
+  }, [isLocalMode]);
+
+  const handlePause = useCallback(() => {
+    if (isLocalMode && audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else if (!isLocalMode && youtubePlayerRef.current) {
+      youtubePlayerRef.current.pauseVideo();
+      // O estado isPlaying será atualizado pelo onStateChange do YouTube
+    }
+  }, [isLocalMode]);
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      handlePause();
+    } else {
+      handlePlay();
+    }
+  };
+  
+  // --- Efeitos ---
+
   // Lógica de Click Outside para fechar o slider de volume
   useEffect(() => {
     if (!isMobile || !showVolumeSlider) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      // Se o clique não estiver dentro do controle de volume (botão ou slider), feche o slider.
       if (volumeControlRef.current && !volumeControlRef.current.contains(event.target as Node)) {
         setShowVolumeSlider(false);
       }
@@ -61,7 +92,7 @@ export const MusicPlayer = () => {
   }, [isMobile, showVolumeSlider]);
 
 
-  // 1. Inicialização do YouTube API (apenas se necessário)
+  // 1. Inicialização do YouTube API
   useEffect(() => {
     if (!window.YT) {
       const tag = document.createElement('script');
@@ -85,7 +116,6 @@ export const MusicPlayer = () => {
     setDuration(0);
     setLocalAudioUrl(null);
     
-    // Tenta carregar do cache primeiro
     getCachedAudioUrl(currentSong).then(url => {
       if (url) {
         // Modo Offline/Local
@@ -93,7 +123,6 @@ export const MusicPlayer = () => {
         setIsLocalMode(true);
         setLocalAudioUrl(url);
         
-        // Destrói o player do YouTube se estiver ativo
         if (youtubePlayerRef.current) {
           youtubePlayerRef.current.destroy();
           youtubePlayerRef.current = null;
@@ -107,7 +136,6 @@ export const MusicPlayer = () => {
     });
 
     return () => {
-      // Limpeza de URL de Blob
       if (localAudioUrl) {
         URL.revokeObjectURL(localAudioUrl);
       }
@@ -124,8 +152,8 @@ export const MusicPlayer = () => {
     }
 
     youtubePlayerRef.current = new window.YT.Player(playerContainerRef.current, {
-      height: '1', // Mínimo visível
-      width: '1', // Mínimo visível
+      height: '1', 
+      width: '1', 
       videoId: videoId,
       playerVars: {
         autoplay: 1,
@@ -134,6 +162,7 @@ export const MusicPlayer = () => {
         fs: 0,
         modestbranding: 1,
         playsinline: 1,
+        // Adicionando 'audioonly' se possível, mas o YT API não suporta nativamente.
       },
       events: {
         onReady: (event: any) => {
@@ -177,7 +206,7 @@ export const MusicPlayer = () => {
         setIsLoading(false);
         audio.play().then(() => setIsPlaying(true)).catch(e => {
           console.error("Erro ao tentar reproduzir áudio local automaticamente:", e);
-          setIsPlaying(false); // Permite que o usuário clique em play
+          setIsPlaying(false); 
           setIsLoading(false);
         });
       };
@@ -227,34 +256,75 @@ export const MusicPlayer = () => {
   }, [isPlaying, isLocalMode]);
   
   
-  // 8. Funções de Controle Explícitas
-  const handlePlay = () => {
-    if (isLocalMode && audioRef.current) {
-      audioRef.current.play().catch(e => console.error("Erro ao tentar reproduzir:", e));
-      setIsPlaying(true);
-    } else if (!isLocalMode && youtubePlayerRef.current) {
-      youtubePlayerRef.current.playVideo();
-      // O estado isPlaying será atualizado pelo onStateChange do YouTube
-    }
-  };
+  // 7. Media Session API
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || !currentSong) return;
 
-  const handlePause = () => {
-    if (isLocalMode && audioRef.current) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else if (!isLocalMode && youtubePlayerRef.current) {
-      youtubePlayerRef.current.pauseVideo();
-      // O estado isPlaying será atualizado pelo onStateChange do YouTube
-    }
-  };
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentSong.title,
+      artist: currentSong.artist,
+      album: 'Leccor Music',
+      artwork: [
+        { src: currentSong.thumbnail, sizes: '96x96', type: 'image/jpeg' },
+        { src: currentSong.thumbnail, sizes: '512x512', type: 'image/jpeg' },
+      ],
+    });
 
-  const togglePlay = () => {
+    const actionHandlers = [
+      ['play', handlePlay], 
+      ['pause', handlePause], 
+      ['previoustrack', playPrevious],
+      ['nexttrack', playNext],
+    ] as const;
+
+    for (const [action, handler] of actionHandlers) {
+      try {
+        // @ts-ignore
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch (error) {
+        console.log(`A ação de mídia ${action} não é suportada.`);
+      }
+    }
+    
     if (isPlaying) {
-      handlePause();
+      navigator.mediaSession.playbackState = 'playing';
     } else {
-      handlePlay();
+      navigator.mediaSession.playbackState = 'paused';
     }
-  };
+
+    return () => {
+      for (const [action] of actionHandlers) {
+        try {
+          // @ts-ignore
+          navigator.mediaSession.setActionHandler(action, null);
+        } catch (e) {
+          // Ignorar
+        }
+      }
+    };
+  }, [currentSong, isPlaying, playNext, playPrevious, handlePlay, handlePause]);
+  
+  
+  // 9. Listener de Visibilidade (Tentativa de retomar a reprodução)
+  useEffect(() => {
+    if (isLocalMode) return; // Não é necessário para áudio local
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isPlaying) {
+        // Se o app voltar a estar visível e o estado interno for 'playing',
+        // tentamos forçar o player do YouTube a continuar, caso o navegador o tenha pausado.
+        if (youtubePlayerRef.current && typeof youtubePlayerRef.current.playVideo === 'function') {
+          youtubePlayerRef.current.playVideo();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isPlaying, isLocalMode]);
+
 
   const handleSeek = (value: number[]) => {
     const seekTime = value[0];
@@ -277,63 +347,6 @@ export const MusicPlayer = () => {
     const secs = Math.floor(time % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
-  
-  // 7. Media Session API (Para reprodução em segundo plano e controles de notificação)
-  useEffect(() => {
-    if (!('mediaSession' in navigator) || !currentSong) return;
-
-    // 7.1 Configurar metadados
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentSong.title,
-      artist: currentSong.artist,
-      album: 'Leccor Music',
-      artwork: [
-        { src: currentSong.thumbnail, sizes: '96x96', type: 'image/jpeg' },
-        { src: currentSong.thumbnail, sizes: '128x128', type: 'image/jpeg' },
-        { src: currentSong.thumbnail, sizes: '192x192', type: 'image/jpeg' },
-        { src: currentSong.thumbnail, sizes: '256x256', type: 'image/jpeg' },
-        { src: currentSong.thumbnail, sizes: '384x384', type: 'image/jpeg' },
-        { src: currentSong.thumbnail, sizes: '512x512', type: 'image/jpeg' },
-      ],
-    });
-
-    // 7.2 Configurar manipuladores de ação
-    const actionHandlers = [
-      ['play', handlePlay], // Usando handlePlay explícito
-      ['pause', handlePause], // Usando handlePause explícito
-      ['previoustrack', playPrevious],
-      ['nexttrack', playNext],
-    ] as const;
-
-    for (const [action, handler] of actionHandlers) {
-      try {
-        // @ts-ignore - Media Session API expects a function
-        navigator.mediaSession.setActionHandler(action, handler);
-      } catch (error) {
-        console.log(`A ação de mídia ${action} não é suportada.`);
-      }
-    }
-    
-    // 7.3 Atualizar estado de reprodução
-    if (isPlaying) {
-      navigator.mediaSession.playbackState = 'playing';
-    } else {
-      navigator.mediaSession.playbackState = 'paused';
-    }
-
-    return () => {
-      // Limpar handlers ao desmontar ou mudar de música
-      for (const [action] of actionHandlers) {
-        try {
-          // @ts-ignore
-          navigator.mediaSession.setActionHandler(action, null);
-        } catch (e) {
-          // Ignorar
-        }
-      }
-    };
-  }, [currentSong, isPlaying, playNext, playPrevious, handlePlay, handlePause]);
-
 
   if (!currentSong) return null;
 
