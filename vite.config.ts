@@ -16,10 +16,10 @@ export default defineConfig(() => ({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'], // arquivos a incluir
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'], // Adicionando webp
         globIgnores: ['**/ignore-me.js', '**/*.map'], // ✅ substitui "exclude"
       },
-      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png', 'placeholder.svg'],
+      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png', 'placeholder.svg', 'background.webp'], // Adicionando background.webp
       manifest: {
         name: 'Leccor Music PWA',
         short_name: 'LeccorMusic',

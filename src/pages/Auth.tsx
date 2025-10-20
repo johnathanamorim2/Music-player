@@ -14,10 +14,10 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Imagem de Fundo Desfocada (Usando o novo formato WEBP) */}
+      {/* Imagem de Fundo Desfocada (Usando o novo nome de arquivo simplificado) */}
       <div 
         className="absolute inset-0 bg-cover bg-center filter blur-sm scale-110"
-        style={{ backgroundImage: `url('/pexels-wendywei-1190297.webp')` }}
+        style={{ backgroundImage: `url('/background.webp')` }}
       />
       
       {/* Overlay Escuro para Legibilidade */}
