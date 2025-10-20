@@ -14,10 +14,10 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Imagem de Fundo Desfocada */}
+      {/* Imagem de Fundo Desfocada (Usando a nova imagem) */}
       <div 
         className="absolute inset-0 bg-cover bg-center filter blur-sm scale-110"
-        style={{ backgroundImage: `url('/placeholder.svg')` }}
+        style={{ backgroundImage: `url('/concert-background.jpg')` }}
       />
       
       {/* Overlay Escuro para Legibilidade */}
