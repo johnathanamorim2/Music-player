@@ -333,7 +333,12 @@ export const MusicPlayer = () => {
           {/* Barra de Progresso e Volume */}
           <div className="flex items-center gap-2 w-full relative">
             <span className="text-xs text-gray-400 w-7 text-center flex-shrink-0">{formatTime(currentTime)}</span>
-            <Slider value={[currentTime]} max={duration || 1} onValueChange={handleSeek} className="w-full" />
+            <Slider 
+              value={[currentTime]} 
+              max={duration || 1} 
+              onValueChange={handleSeek} 
+              className="w-full [&>span:first-child]:bg-gray-700 [&>span:first-child>span]:bg-purple-500" // Customizando o track (fundo) e o range (preenchimento)
+            />
             <span className="text-xs text-gray-400 w-7 text-center flex-shrink-0">{formatTime(duration)}</span>
             
             {/* Controle de Volume (Mobile: Ícone + Pop-up, Desktop: Slider) */}
