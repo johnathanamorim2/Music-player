@@ -289,7 +289,7 @@ const Favorites = () => {
               isFavorite={favoriteIds.has(song.db_id!)}
               isOffline={offlineIds.has(song.db_id!)} // Adicionado
               isCaching={song.db_id === cachingId} // Adicionado
-              variant="library"
+              variant="favorites" // Usando o novo variant
             />
           ))}
         </div>

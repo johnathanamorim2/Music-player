@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Playlist } from "@/types";
+import { Playlist, Song } from "@/types";
 import { PlaylistCard } from "@/components/PlaylistCard";
 import { CreatePlaylistDialog } from "@/components/CreatePlaylistDialog";
 import { useState } from "react";
 import { showError, showSuccess } from "@/utils/toast";
+import { useMusicPlayer } from "@/contexts/MusicPlayerContext"; // Importando useMusicPlayer
 
 // Hook para buscar playlists (com contagem de músicas)
 const useUserPlaylists = (userId: string | undefined) => {
@@ -46,6 +47,7 @@ const Playlists = () => {
   const { user } = useAuth();
   const userId = user?.id;
   const queryClient = useQueryClient();
+  const { setCurrentSong, setPlaylist } = useMusicPlayer(); // Usando o player context
   
   const { data: playlists = [], isLoading } = useUserPlaylists(userId);
   const [isCreatePlaylistDialogOpen, setIsCreatePlaylistDialogOpen] = useState(false);
@@ -65,6 +67,50 @@ const Playlists = () => {
 
     showSuccess(`Playlist "${name}" criada com sucesso!`);
     queryClient.invalidateQueries({ queryKey: ["playlists", userId] });
+  };
+
+  const handlePlayPlaylist = async (playlist: Playlist) => {
+    if (playlist.song_count === 0) {
+      showError("A playlist está vazia.");
+      return;
+    }
+
+    // Busca as músicas detalhadas da playlist
+    const { data: songsData, error: songsError } = await supabase
+      .from('playlist_songs')
+      .select(`
+        position,
+        song_id,
+        songs (
+          id, youtube_id, title, artist, thumbnail_url, duration, audio_url
+        )
+      `)
+      .eq('playlist_id', playlist.id)
+      .order('position', { ascending: true });
+
+    if (songsError) {
+      showError("Erro ao carregar músicas da playlist.");
+      console.error(songsError);
+      return;
+    }
+
+    const songs: Song[] = songsData.map(item => {
+      const song = item.songs as any;
+      return {
+        id: song.youtube_id,
+        title: song.title,
+        artist: song.artist,
+        thumbnail: song.thumbnail_url,
+        duration: song.duration,
+        db_id: song.id,
+        audio_url: song.audio_url,
+      } as Song;
+    });
+
+    if (songs.length > 0) {
+      setPlaylist(songs);
+      setCurrentSong(songs[0]);
+    }
   };
 
   return (
@@ -92,7 +138,11 @@ const Playlists = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {playlists.map((playlist) => (
-            <PlaylistCard key={playlist.id} playlist={playlist} />
+            <PlaylistCard 
+              key={playlist.id} 
+              playlist={playlist} 
+              onPlay={handlePlayPlaylist} // Passando a função de reprodução
+            />
           ))}
         </div>
       )}

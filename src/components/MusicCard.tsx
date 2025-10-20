@@ -16,7 +16,7 @@ interface MusicCardProps {
   isFavorite?: boolean;
   isOffline?: boolean; // Novo prop para indicar se está em cache
   isCaching?: boolean; // Novo prop para indicar se está cacheando
-  variant: "search" | "library" | "playlist";
+  variant: "search" | "library" | "playlist" | "favorites"; // Adicionado "favorites"
 }
 
 export const MusicCard = ({
@@ -45,7 +45,7 @@ export const MusicCard = ({
   const handlePrimaryAction = () => {
     if (variant === 'search' && onDownload) {
       onDownload(song);
-    } else if ((variant === 'library' || variant === 'playlist') && onPlay) {
+    } else if ((variant === 'library' || variant === 'playlist' || variant === 'favorites') && onPlay) {
       onPlay(song);
     }
   };
@@ -55,7 +55,7 @@ export const MusicCard = ({
     : <Play size={24} className="ml-0.5" />;
 
   const renderLibraryActions = () => {
-    // Ações para Library (Favoritar, Adicionar à Playlist, Deletar da Biblioteca, Offline)
+    // Ações para Library e Favorites (Favoritar, Adicionar à Playlist, Deletar da Biblioteca, Offline)
     if (variant === 'library' || variant === 'favorites') {
       return (
         <>
@@ -117,7 +117,7 @@ export const MusicCard = ({
               <TooltipContent>Adicionar à Playlist</TooltipContent>
             </Tooltip>
           )}
-          {onDelete && (
+          {onDelete && variant === 'library' && ( // Deletar só aparece na Library (não em Favorites)
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button 
