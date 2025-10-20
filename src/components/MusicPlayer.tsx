@@ -225,9 +225,64 @@ export const MusicPlayer = () => {
       return () => clearInterval(interval);
     }
   }, [isPlaying, isLocalMode]);
+  
+  
+  // 7. Media Session API (Para reprodução em segundo plano e controles de notificação)
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || !currentSong) return;
+
+    // 7.1 Configurar metadados
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentSong.title,
+      artist: currentSong.artist,
+      album: 'Leccor Music',
+      artwork: [
+        { src: currentSong.thumbnail, sizes: '96x96', type: 'image/jpeg' },
+        { src: currentSong.thumbnail, sizes: '128x128', type: 'image/jpeg' },
+        { src: currentSong.thumbnail, sizes: '192x192', type: 'image/jpeg' },
+        { src: currentSong.thumbnail, sizes: '256x256', type: 'image/jpeg' },
+        { src: currentSong.thumbnail, sizes: '384x384', type: 'image/jpeg' },
+        { src: currentSong.thumbnail, sizes: '512x512', type: 'image/jpeg' },
+      ],
+    });
+
+    // 7.2 Configurar manipuladores de ação
+    const actionHandlers = [
+      ['play', togglePlay],
+      ['pause', togglePlay],
+      ['previoustrack', playPrevious],
+      ['nexttrack', playNext],
+    ] as const;
+
+    for (const [action, handler] of actionHandlers) {
+      try {
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch (error) {
+        console.log(`A ação de mídia ${action} não é suportada.`);
+      }
+    }
+    
+    // 7.3 Atualizar estado de reprodução
+    if (isPlaying) {
+      navigator.mediaSession.playbackState = 'playing';
+    } else {
+      navigator.mediaSession.playbackState = 'paused';
+    }
+
+    return () => {
+      // Limpar handlers ao desmontar ou mudar de música
+      for (const [action] of actionHandlers) {
+        try {
+          navigator.mediaSession.setActionHandler(action, null);
+        } catch (e) {
+          // Ignorar
+        }
+      }
+    };
+  }, [currentSong, isPlaying, playNext, playPrevious]);
 
 
-  // 7. Funções de Controle
+  // 8. Funções de Controle
   const togglePlay = () => {
     if (isLocalMode && audioRef.current) {
       if (isPlaying) audioRef.current.pause();
