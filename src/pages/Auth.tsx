@@ -14,20 +14,20 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Imagem de Fundo Desfocada */}
+      {/* Imagem de Fundo Desfocada (Show de Música) */}
       <div 
-        className="absolute inset-0 bg-cover bg-center filter blur-lg scale-110"
+        className="absolute inset-0 bg-cover bg-center filter blur-xl scale-110"
         style={{ 
-          backgroundImage: `url('/placeholder.svg')`, // Usando placeholder.svg como fundo
-          opacity: 0.2, // Reduzindo a opacidade para escurecer
+          backgroundImage: `url('/pexels-wendywei-1190297.jpg')`,
+          opacity: 0.3, // Mantendo a opacidade baixa para um fundo escuro e sutil
         }}
       />
       
       {/* Overlay Escuro para garantir contraste */}
       <div className="absolute inset-0 bg-gray-900/70" />
 
-      {/* Container de Login (Centralizado e Elevado) */}
-      <div className="w-full max-w-md p-8 space-y-8 bg-gray-800/90 backdrop-blur-sm rounded-lg shadow-2xl relative z-10 border border-purple-800">
+      {/* Container de Login (Centralizado e Elevado com efeito de vidro) */}
+      <div className="w-full max-w-md p-8 space-y-8 bg-gray-800/90 backdrop-blur-lg rounded-lg shadow-2xl relative z-10 border border-purple-800">
         <div className="flex flex-col items-center">
           <div className="flex items-center justify-center mb-2">
             <Music 
