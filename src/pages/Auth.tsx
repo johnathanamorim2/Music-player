@@ -4,9 +4,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Music } from 'lucide-react';
+import { useEffect } from 'react';
 
 const AuthPage = () => {
   const { session } = useAuth();
+  const backgroundUrl = '/background.webp';
+
+  useEffect(() => {
+    console.log(`[AuthPage] Tentando carregar imagem de fundo: ${backgroundUrl}`);
+  }, []);
 
   if (session) {
     return <Navigate to="/" />;
@@ -14,10 +20,10 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Imagem de Fundo Desfocada (Usando o novo nome de arquivo simplificado) */}
+      {/* Imagem de Fundo Desfocada */}
       <div 
         className="absolute inset-0 bg-cover bg-center filter blur-sm scale-110"
-        style={{ backgroundImage: `url('/background.webp')` }}
+        style={{ backgroundImage: `url('${backgroundUrl}')` }}
       />
       
       {/* Overlay Escuro para Legibilidade */}
