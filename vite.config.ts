@@ -16,10 +16,8 @@ export default defineConfig(() => ({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       workbox: {
-        // Cache de assets estáticos
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,webp,woff2}'],
-        // Ignorar arquivos grandes ou desnecessários
-        exclude: ['node_modules', 'dist', 'index.html', 'manifest.webmanifest'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'], // arquivos a incluir
+        globIgnores: ['**/ignore-me.js', '**/*.map'], // ✅ substitui "exclude"
       },
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png', 'placeholder.svg'],
       manifest: {
