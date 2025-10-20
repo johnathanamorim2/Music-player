@@ -107,7 +107,7 @@ export const AppLayout = () => {
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [currentTab, setCurrentTab] = useState<"search" | "library">("search");
+  const [currentTab, setCurrentTab] = useState<"search" | "library">("library"); // ALTERADO PARA 'library'
   
   // Estados para Diálogos de Playlist
   const [isAddToPlaylistDialogOpen, setIsAddToPlaylistDialogOpen] = useState(false);
