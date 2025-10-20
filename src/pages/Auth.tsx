@@ -3,6 +3,7 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { Music } from 'lucide-react'; // Importando o ícone
 
 const AuthPage = () => {
   const { session } = useAuth();
@@ -14,10 +15,17 @@ const AuthPage = () => {
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">
       <div className="w-full max-w-md p-8 space-y-8 bg-gray-800 rounded-lg shadow-lg">
-        <div>
-          <h1 className="text-3xl font-bold text-center text-white bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-            Leccor Music
-          </h1>
+        <div className="flex flex-col items-center">
+          {/* Título atualizado para corresponder ao Header.tsx */}
+          <div className="flex items-center justify-center mb-2">
+            <Music 
+              size={32} 
+              className="mr-3 text-purple-400" 
+            />
+            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
+              Leccor Music
+            </h1>
+          </div>
           <p className="mt-2 text-center text-sm text-gray-400">
             Faça login ou registre-se para salvar suas músicas
           </p>
