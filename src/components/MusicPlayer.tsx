@@ -240,7 +240,7 @@ export const MusicPlayer = () => {
   if (!currentSong) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md text-white p-4 border-t border-purple-800 z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md text-white p-3 border-t border-purple-800 z-50">
       {/* Elemento de áudio para reprodução offline/local */}
       <audio ref={audioRef} preload="auto" style={{ display: 'none' }} />
       {/* Container do YouTube Player (agora com tamanho mínimo e posicionado fora da tela) */}
@@ -256,7 +256,7 @@ export const MusicPlayer = () => {
         }} 
       />
       
-      <div className="container mx-auto flex flex-col lg:flex-row items-center justify-between gap-4 relative">
+      <div className="container mx-auto flex flex-col lg:flex-row items-center justify-between gap-2 relative">
         
         {/* Botão de Fechar (Mobile: Canto Superior Esquerdo) */}
         {isMobile && (
@@ -264,54 +264,53 @@ export const MusicPlayer = () => {
             size="icon" 
             variant="secondary"
             onClick={closePlayer} 
-            // Ajustado para left-0 para alinhar com a borda do container
-            className="absolute top-[-40px] left-0 text-gray-300 hover:text-white bg-gray-800/70 hover:bg-gray-700/90 transition-colors w-8 h-8 rounded-full shadow-lg"
+            className="absolute top-[-35px] left-0 text-gray-300 hover:text-white bg-gray-800/70 hover:bg-gray-700/90 transition-colors w-7 h-7 rounded-full shadow-lg"
           >
-            <X size={18} />
+            <X size={16} />
           </Button>
         )}
 
         {/* 1. Info da Música (Esquerda) */}
-        <div className="flex items-center gap-4 w-full lg:w-1/4">
-          <img src={currentSong.thumbnail} alt={currentSong.title} className="w-14 h-14 rounded-md flex-shrink-0" />
+        <div className="flex items-center gap-3 w-full lg:w-1/4">
+          <img src={currentSong.thumbnail} alt={currentSong.title} className="w-12 h-12 rounded-md flex-shrink-0" />
           <div className="min-w-0 flex-grow">
-            <p className="font-semibold truncate text-sm lg:text-base">{currentSong.title}</p>
+            <p className="font-semibold truncate text-xs lg:text-sm">{currentSong.title}</p>
             <p className="text-xs text-gray-400 truncate">{currentSong.artist}</p>
           </div>
         </div>
 
         {/* 2. Controles Principais e Barra de Progresso (Centro) */}
-        <div className="flex flex-col items-center gap-2 w-full lg:w-1/2 order-first lg:order-none">
-          <div className="flex items-center gap-4 lg:gap-6">
+        <div className="flex flex-col items-center gap-1 w-full lg:w-1/2 order-first lg:order-none">
+          <div className="flex items-center gap-3 lg:gap-4">
             {/* Botão de Shuffle */}
             <Button 
               size="icon" 
               variant="ghost" 
               onClick={toggleShuffle} 
               className={cn(
-                "hover:text-purple-400 transition-colors w-8 h-8 lg:w-10 lg:h-10",
+                "hover:text-purple-400 transition-colors w-7 h-7 lg:w-8 lg:h-8",
                 isShuffling ? "text-purple-400" : "text-gray-400"
               )}
             >
-              <Shuffle size={20} />
+              <Shuffle size={16} />
             </Button>
             
-            <Button size="icon" variant="ghost" onClick={playPrevious} className="hover:text-purple-400 transition-colors disabled:text-gray-600 w-8 h-8 lg:w-10 lg:h-10" disabled={!playPrevious}>
-              <SkipBack size={20} />
+            <Button size="icon" variant="ghost" onClick={playPrevious} className="hover:text-purple-400 transition-colors disabled:text-gray-600 w-7 h-7 lg:w-8 lg:h-8" disabled={!playPrevious}>
+              <SkipBack size={16} />
             </Button>
-            <Button onClick={togglePlay} className="bg-purple-600 hover:bg-purple-500 rounded-full p-3 transition-colors w-12 h-12 lg:w-14 lg:h-14 flex items-center justify-center" disabled={isLoading && !isLocalMode}>
-              {isLoading ? <Loader2 className="animate-spin w-6 h-6 lg:w-7 lg:h-7" /> : isPlaying ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
+            <Button onClick={togglePlay} className="bg-purple-600 hover:bg-purple-500 rounded-full p-2 transition-colors w-10 h-10 lg:w-12 lg:h-12 flex items-center justify-center" disabled={isLoading && !isLocalMode}>
+              {isLoading ? <Loader2 className="animate-spin w-5 h-5 lg:w-6 lg:h-6" /> : isPlaying ? <Pause size={20} /> : <Play size={20} className="ml-0.5" />}
             </Button>
-            <Button size="icon" variant="ghost" onClick={playNext} className="hover:text-purple-400 transition-colors disabled:text-gray-600 w-8 h-8 lg:w-10 lg:h-10" disabled={!playNext}>
-              <SkipForward size={20} />
+            <Button size="icon" variant="ghost" onClick={playNext} className="hover:text-purple-400 transition-colors disabled:text-gray-600 w-7 h-7 lg:w-8 lg:h-8" disabled={!playNext}>
+              <SkipForward size={16} />
             </Button>
           </div>
           
           {/* Barra de Progresso e Volume */}
           <div className="flex items-center gap-2 w-full relative">
-            <span className="text-xs text-gray-400 w-8 text-center flex-shrink-0">{formatTime(currentTime)}</span>
+            <span className="text-xs text-gray-400 w-7 text-center flex-shrink-0">{formatTime(currentTime)}</span>
             <Slider value={[currentTime]} max={duration || 1} onValueChange={handleSeek} className="w-full" />
-            <span className="text-xs text-gray-400 w-8 text-center flex-shrink-0">{formatTime(duration)}</span>
+            <span className="text-xs text-gray-400 w-7 text-center flex-shrink-0">{formatTime(duration)}</span>
             
             {/* Controle de Volume (Mobile: Ícone + Pop-up, Desktop: Slider) */}
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -320,11 +319,11 @@ export const MusicPlayer = () => {
                 variant="ghost" 
                 onClick={() => isMobile ? setShowVolumeSlider(prev => !prev) : undefined}
                 className={cn(
-                  "hover:text-purple-400 transition-colors text-gray-400 lg:text-white w-8 h-8",
+                  "hover:text-purple-400 transition-colors text-gray-400 lg:text-white w-7 h-7",
                   !isMobile && "hidden"
                 )}
               >
-                <Volume2 size={20} />
+                <Volume2 size={16} />
               </Button>
               
               {/* Slider de Volume (Mobile Pop-up) */}
@@ -350,16 +349,16 @@ export const MusicPlayer = () => {
         {/* 3. Controles de Volume e Fechar (Direita) - APENAS DESKTOP */}
         <div className="hidden lg:flex items-center gap-4 w-1/4 justify-end">
           <div className="flex items-center gap-2 w-full lg:w-auto">
-            <Volume2 size={20} className="flex-shrink-0" />
+            <Volume2 size={16} className="flex-shrink-0" />
             <Slider value={[volume]} max={100} step={1} onValueChange={handleVolumeChange} className="w-full lg:w-24" />
           </div>
           <Button 
             size="icon" 
             variant="ghost" 
             onClick={closePlayer} 
-            className="hover:text-purple-400 transition-colors flex-shrink-0"
+            className="hover:text-purple-400 transition-colors flex-shrink-0 w-8 h-8"
           >
-            <X size={20} />
+            <X size={18} />
           </Button>
         </div>
       </div>
