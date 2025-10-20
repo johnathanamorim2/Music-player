@@ -20,9 +20,9 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Imagem de Fundo Desfocada */}
+      {/* Imagem de Fundo Desfocada (Adicionando bg-gray-900 como fallback) */}
       <div 
-        className="absolute inset-0 bg-cover bg-center filter blur-sm scale-110"
+        className="absolute inset-0 bg-gray-900 bg-cover bg-center filter blur-sm scale-110"
         style={{ backgroundImage: `url('${backgroundUrl}')` }}
       />
       
