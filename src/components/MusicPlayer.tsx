@@ -37,6 +37,30 @@ export const MusicPlayer = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
+  // Ref para o container do player (para detectar cliques fora)
+  const playerBarRef = useRef<HTMLDivElement>(null);
+  // Ref para o container do volume (para detectar cliques dentro)
+  const volumeControlRef = useRef<HTMLDivElement>(null);
+
+
+  // Lógica de Click Outside para fechar o slider de volume
+  useEffect(() => {
+    if (!isMobile || !showVolumeSlider) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      // Se o clique não estiver dentro do controle de volume (botão ou slider), feche o slider.
+      if (volumeControlRef.current && !volumeControlRef.current.contains(event.target as Node)) {
+        setShowVolumeSlider(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isMobile, showVolumeSlider]);
+
+
   // 1. Inicialização do YouTube API (apenas se necessário)
   useEffect(() => {
     if (!window.YT) {
@@ -240,7 +264,7 @@ export const MusicPlayer = () => {
   if (!currentSong) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md text-white p-3 border-t border-purple-800 z-50">
+    <div ref={playerBarRef} className="fixed bottom-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md text-white p-3 border-t border-purple-800 z-50">
       {/* Elemento de áudio para reprodução offline/local */}
       <audio ref={audioRef} preload="auto" style={{ display: 'none' }} />
       {/* Container do YouTube Player (agora com tamanho mínimo e posicionado fora da tela) */}
@@ -313,7 +337,7 @@ export const MusicPlayer = () => {
             <span className="text-xs text-gray-400 w-7 text-center flex-shrink-0">{formatTime(duration)}</span>
             
             {/* Controle de Volume (Mobile: Ícone + Pop-up, Desktop: Slider) */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div ref={volumeControlRef} className="flex items-center gap-2 flex-shrink-0">
               <Button 
                 size="icon" 
                 variant="ghost" 
