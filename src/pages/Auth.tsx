@@ -3,7 +3,7 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Music } from 'lucide-react'; // Importando o ícone
+import { Music } from 'lucide-react';
 
 const AuthPage = () => {
   const { session } = useAuth();
@@ -13,10 +13,22 @@ const AuthPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="w-full max-w-md p-8 space-y-8 bg-gray-800 rounded-lg shadow-lg">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      {/* Imagem de Fundo Desfocada */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center filter blur-lg scale-110"
+        style={{ 
+          backgroundImage: `url('/placeholder.svg')`, // Usando placeholder.svg como fundo
+          opacity: 0.2, // Reduzindo a opacidade para escurecer
+        }}
+      />
+      
+      {/* Overlay Escuro para garantir contraste */}
+      <div className="absolute inset-0 bg-gray-900/70" />
+
+      {/* Container de Login (Centralizado e Elevado) */}
+      <div className="w-full max-w-md p-8 space-y-8 bg-gray-800/90 backdrop-blur-sm rounded-lg shadow-2xl relative z-10 border border-purple-800">
         <div className="flex flex-col items-center">
-          {/* Título atualizado para corresponder ao Header.tsx */}
           <div className="flex items-center justify-center mb-2">
             <Music 
               size={32} 
@@ -37,17 +49,14 @@ const AuthPage = () => {
             variables: {
               default: {
                 colors: {
-                  // Cor primária para botões e links
-                  brand: 'hsl(263 70% 50%)', // Roxo base (aproximado do purple-600)
-                  brandAccent: 'hsl(263 70% 60%)', // Roxo hover (aproximado do purple-500)
+                  brand: 'hsl(263 70% 50%)',
+                  brandAccent: 'hsl(263 70% 60%)',
                 },
-                // Customização do botão primário
                 radii: {
-                  borderRadiusButton: '0.5rem', // Arredondamento padrão
+                  borderRadiusButton: '0.5rem',
                 },
               },
             },
-            // Customização via className para garantir que o hover funcione
             className: {
               button: 'bg-purple-600 hover:bg-purple-500 transition-colors',
             }
