@@ -265,8 +265,8 @@ export const MusicPlayer = () => {
 
   return (
     <div ref={playerBarRef} className="fixed bottom-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md text-white p-3 border-t border-purple-800 z-50">
-      {/* Elemento de áudio para reprodução offline/local */}
-      <audio ref={audioRef} preload="auto" style={{ display: 'none' }} />
+      {/* Elemento de áudio para reprodução offline/local - Adicionado playsInline e controls (oculto) */}
+      <audio ref={audioRef} preload="auto" playsInline controls style={{ display: 'none' }} />
       {/* Container do YouTube Player (agora com tamanho mínimo e posicionado fora da tela) */}
       <div 
         ref={playerContainerRef} 
