@@ -227,70 +227,32 @@ export const MusicPlayer = () => {
   }, [isPlaying, isLocalMode]);
   
   
-  // 7. Media Session API (Para reprodução em segundo plano e controles de notificação)
-  useEffect(() => {
-    if (!('mediaSession' in navigator) || !currentSong) return;
-
-    // 7.1 Configurar metadados
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentSong.title,
-      artist: currentSong.artist,
-      album: 'Leccor Music',
-      artwork: [
-        { src: currentSong.thumbnail, sizes: '96x96', type: 'image/jpeg' },
-        { src: currentSong.thumbnail, sizes: '128x128', type: 'image/jpeg' },
-        { src: currentSong.thumbnail, sizes: '192x192', type: 'image/jpeg' },
-        { src: currentSong.thumbnail, sizes: '256x256', type: 'image/jpeg' },
-        { src: currentSong.thumbnail, sizes: '384x384', type: 'image/jpeg' },
-        { src: currentSong.thumbnail, sizes: '512x512', type: 'image/jpeg' },
-      ],
-    });
-
-    // 7.2 Configurar manipuladores de ação
-    const actionHandlers = [
-      ['play', togglePlay],
-      ['pause', togglePlay],
-      ['previoustrack', playPrevious],
-      ['nexttrack', playNext],
-    ] as const;
-
-    for (const [action, handler] of actionHandlers) {
-      try {
-        navigator.mediaSession.setActionHandler(action, handler);
-      } catch (error) {
-        console.log(`A ação de mídia ${action} não é suportada.`);
-      }
-    }
-    
-    // 7.3 Atualizar estado de reprodução
-    if (isPlaying) {
-      navigator.mediaSession.playbackState = 'playing';
-    } else {
-      navigator.mediaSession.playbackState = 'paused';
-    }
-
-    return () => {
-      // Limpar handlers ao desmontar ou mudar de música
-      for (const [action] of actionHandlers) {
-        try {
-          navigator.mediaSession.setActionHandler(action, null);
-        } catch (e) {
-          // Ignorar
-        }
-      }
-    };
-  }, [currentSong, isPlaying, playNext, playPrevious]);
-
-
-  // 8. Funções de Controle
-  const togglePlay = () => {
+  // 8. Funções de Controle Explícitas
+  const handlePlay = () => {
     if (isLocalMode && audioRef.current) {
-      if (isPlaying) audioRef.current.pause();
-      else audioRef.current.play().catch(e => console.error("Erro ao tentar reproduzir:", e));
-      setIsPlaying(!isPlaying);
+      audioRef.current.play().catch(e => console.error("Erro ao tentar reproduzir:", e));
+      setIsPlaying(true);
     } else if (!isLocalMode && youtubePlayerRef.current) {
-      if (isPlaying) youtubePlayerRef.current.pauseVideo();
-      else youtubePlayerRef.current.playVideo();
+      youtubePlayerRef.current.playVideo();
+      // O estado isPlaying será atualizado pelo onStateChange do YouTube
+    }
+  };
+
+  const handlePause = () => {
+    if (isLocalMode && audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else if (!isLocalMode && youtubePlayerRef.current) {
+      youtubePlayerRef.current.pauseVideo();
+      // O estado isPlaying será atualizado pelo onStateChange do YouTube
+    }
+  };
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      handlePause();
+    } else {
+      handlePlay();
     }
   };
 
@@ -315,6 +277,63 @@ export const MusicPlayer = () => {
     const secs = Math.floor(time % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
+  
+  // 7. Media Session API (Para reprodução em segundo plano e controles de notificação)
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || !currentSong) return;
+
+    // 7.1 Configurar metadados
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentSong.title,
+      artist: currentSong.artist,
+      album: 'Leccor Music',
+      artwork: [
+        { src: currentSong.thumbnail, sizes: '96x96', type: 'image/jpeg' },
+        { src: currentSong.thumbnail, sizes: '128x128', type: 'image/jpeg' },
+        { src: currentSong.thumbnail, sizes: '192x192', type: 'image/jpeg' },
+        { src: currentSong.thumbnail, sizes: '256x256', type: 'image/jpeg' },
+        { src: currentSong.thumbnail, sizes: '384x384', type: 'image/jpeg' },
+        { src: currentSong.thumbnail, sizes: '512x512', type: 'image/jpeg' },
+      ],
+    });
+
+    // 7.2 Configurar manipuladores de ação
+    const actionHandlers = [
+      ['play', handlePlay], // Usando handlePlay explícito
+      ['pause', handlePause], // Usando handlePause explícito
+      ['previoustrack', playPrevious],
+      ['nexttrack', playNext],
+    ] as const;
+
+    for (const [action, handler] of actionHandlers) {
+      try {
+        // @ts-ignore - Media Session API expects a function
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch (error) {
+        console.log(`A ação de mídia ${action} não é suportada.`);
+      }
+    }
+    
+    // 7.3 Atualizar estado de reprodução
+    if (isPlaying) {
+      navigator.mediaSession.playbackState = 'playing';
+    } else {
+      navigator.mediaSession.playbackState = 'paused';
+    }
+
+    return () => {
+      // Limpar handlers ao desmontar ou mudar de música
+      for (const [action] of actionHandlers) {
+        try {
+          // @ts-ignore
+          navigator.mediaSession.setActionHandler(action, null);
+        } catch (e) {
+          // Ignorar
+        }
+      }
+    };
+  }, [currentSong, isPlaying, playNext, playPrevious, handlePlay, handlePause]);
+
 
   if (!currentSong) return null;
 
@@ -430,7 +449,7 @@ export const MusicPlayer = () => {
           </div>
         </div>
 
-        {/* 3. Controles de Volume e Fechar (Direita) - APENAS DESKTOP */}
+        {/* 3. Controles de Volume e Fechar (Direita) - APENNAS DESKTOP */}
         <div className="hidden lg:flex items-center gap-4 w-1/4 justify-end">
           <div className="flex items-center gap-2 w-full lg:w-auto">
             <Volume2 size={16} className="flex-shrink-0" />
