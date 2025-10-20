@@ -5,7 +5,7 @@ import { Slider } from "@/components/ui/slider";
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
 import { useOfflineAudio } from "@/hooks/useOfflineAudio";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile"; // Importando useIsMobile
+import { useIsMobile } from "@/hooks/use-mobile";
 
 declare global {
   interface Window {
@@ -16,7 +16,7 @@ declare global {
 
 export const MusicPlayer = () => {
   const { currentSong, playlist, playNext, playPrevious, closePlayer, isShuffling, toggleShuffle } = useMusicPlayer();
-  const isMobile = useIsMobile(); // Usando o hook de mobile
+  const isMobile = useIsMobile();
   
   // YouTube Player Refs
   const youtubePlayerRef = useRef<any>(null);
@@ -27,7 +27,7 @@ export const MusicPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const { getCachedAudioUrl } = useOfflineAudio();
   const [localAudioUrl, setLocalAudioUrl] = useState<string | null>(null);
-  const [isLocalMode, setIsLocalMode] = useState(false); // Se estamos usando <audio> ou YouTube
+  const [isLocalMode, setIsLocalMode] = useState(false);
 
   // Player State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -35,7 +35,7 @@ export const MusicPlayer = () => {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(50);
   const [isLoading, setIsLoading] = useState(true);
-  const [showVolumeSlider, setShowVolumeSlider] = useState(false); // Novo estado para mobile
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
   // 1. Inicialização do YouTube API (apenas se necessário)
   useEffect(() => {
@@ -210,7 +210,7 @@ export const MusicPlayer = () => {
       else audioRef.current.play().catch(e => console.error("Erro ao tentar reproduzir:", e));
       setIsPlaying(!isPlaying);
     } else if (!isLocalMode && youtubePlayerRef.current) {
-      if (isPlaying) youtubePlayerPlayerRef.current.pauseVideo();
+      if (isPlaying) youtubePlayerRef.current.pauseVideo();
       else youtubePlayerRef.current.playVideo();
     }
   };
@@ -305,49 +305,56 @@ export const MusicPlayer = () => {
               <SkipForward size={20} />
             </Button>
           </div>
-          <div className="flex items-center gap-2 w-full">
-            <span className="text-xs text-gray-400 w-8 text-center">{formatTime(currentTime)}</span>
+          
+          {/* Barra de Progresso e Volume */}
+          <div className="flex items-center gap-2 w-full relative">
+            <span className="text-xs text-gray-400 w-8 text-center flex-shrink-0">{formatTime(currentTime)}</span>
             <Slider value={[currentTime]} max={duration || 1} onValueChange={handleSeek} className="w-full" />
-            <span className="text-xs text-gray-400 w-8 text-center">{formatTime(duration)}</span>
+            <span className="text-xs text-gray-400 w-8 text-center flex-shrink-0">{formatTime(duration)}</span>
+            
+            {/* Controle de Volume (Mobile: Ícone + Pop-up, Desktop: Slider) */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                onClick={() => isMobile ? setShowVolumeSlider(prev => !prev) : undefined}
+                className={cn(
+                  "hover:text-purple-400 transition-colors text-gray-400 lg:text-white w-8 h-8",
+                  !isMobile && "hidden" // Esconde o botão de volume no desktop, pois o slider está sempre visível na seção 3
+                )}
+              >
+                <Volume2 size={20} />
+              </Button>
+              
+              {/* Slider de Volume (Mobile Pop-up) */}
+              {isMobile && (
+                <div className={cn(
+                  "absolute bottom-full right-0 mb-2 p-2 bg-gray-800 rounded-md shadow-lg transition-opacity duration-300",
+                  !showVolumeSlider && "opacity-0 pointer-events-none",
+                  showVolumeSlider && "opacity-100"
+                )}>
+                  <Slider 
+                    value={[volume]} 
+                    max={100} 
+                    step={1} 
+                    onValueChange={handleVolumeChange} 
+                    className="w-32"
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* 3. Controles de Volume e Fechar (Direita) */}
-        <div className="flex items-center gap-4 w-full lg:w-1/4 justify-between lg:justify-end">
-          {/* Botão de Volume (Sempre visível) */}
-          <div className={cn("flex items-center gap-2 w-full lg:w-auto", isMobile && "justify-end")}>
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              onClick={() => isMobile ? setShowVolumeSlider(prev => !prev) : undefined}
-              className="hover:text-purple-400 transition-colors flex-shrink-0 text-gray-400 lg:text-white"
-            >
-              <Volume2 size={20} />
-            </Button>
-            
-            {/* Slider de Volume (Visível no Desktop, Condicional no Mobile) */}
-            <div className={cn(
-              "w-full lg:w-24",
-              isMobile && "absolute bottom-full right-0 mb-2 p-2 bg-gray-800 rounded-md shadow-lg transition-opacity duration-300",
-              isMobile && !showVolumeSlider && "opacity-0 pointer-events-none",
-              isMobile && showVolumeSlider && "opacity-100"
-            )}>
-              <Slider 
-                value={[volume]} 
-                max={100} 
-                step={1} 
-                onValueChange={handleVolumeChange} 
-                className={cn("w-full", isMobile && "w-32")}
-              />
-            </div>
+        {/* 3. Controles de Volume e Fechar (Direita) - APENAS DESKTOP */}
+        <div className="hidden lg:flex items-center gap-4 w-1/4 justify-end">
+          <div className="flex items-center gap-2 w-full lg:w-auto">
+            <Volume2 size={20} className="flex-shrink-0" />
+            <Slider value={[volume]} max={100} step={1} onValueChange={handleVolumeChange} className="w-full lg:w-24" />
           </div>
-          
-          {/* Botão de Fechar (Apenas Desktop) */}
-          {!isMobile && (
-            <Button size="icon" variant="ghost" onClick={closePlayer} className="hover:text-purple-400 transition-colors flex-shrink-0">
-              <X size={20} />
-            </Button>
-          )}
+          <Button size="icon" variant="ghost" onClick={closePlayer} className="hover:text-purple-400 transition-colors flex-shrink-0">
+            <X size={20} />
+          </Button>
         </div>
       </div>
     </div>
