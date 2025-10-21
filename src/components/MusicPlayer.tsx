@@ -307,25 +307,8 @@ export const MusicPlayer = () => {
   }, [currentSong, isPlaying, playNext, playPrevious, handlePlay, handlePause]);
   
   
-  // 9. Listener de Visibilidade (Tentativa de retomar a reprodução)
-  useEffect(() => {
-    if (isLocalMode) return; // Não é necessário para áudio local
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && isPlaying) {
-        // Se o app voltar a estar visível e o estado interno for 'playing',
-        // tentamos forçar o player do YouTube a continuar, caso o navegador o tenha pausado.
-        if (youtubePlayerRef.current && typeof youtubePlayerRef.current.playVideo === 'function') {
-          youtubePlayerRef.current.playVideo();
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isPlaying, isLocalMode]);
+  // O listener de visibilidade foi removido, pois o controle de reprodução em segundo plano
+  // deve ser feito pelo Media Session API, que o usuário confirmou estar funcionando.
 
 
   const handleSeek = (value: number[]) => {
@@ -406,7 +389,7 @@ export const MusicPlayer = () => {
               <TooltipContent className="max-w-xs">
                 {isLocalMode 
                   ? "Reprodução garantida em segundo plano." 
-                  : "Reprodução via YouTube. Pode ser pausada pelo navegador ao minimizar o app. Baixe para Offline para garantir a continuidade."
+                  : "Reprodução via YouTube. Pode ser pausada pelo navegador ao minimizar o app. Use os controles de mídia do sistema para retomar."
                 }
               </TooltipContent>
             </Tooltip>
