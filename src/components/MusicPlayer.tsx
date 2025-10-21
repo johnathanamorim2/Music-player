@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Play, Pause, SkipBack, SkipForward, Volume2, X, Loader2, Shuffle } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, X, Loader2, Shuffle, WifiOff, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
 import { useOfflineAudio } from "@/hooks/useOfflineAudio";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 declare global {
   interface Window {
@@ -350,6 +352,10 @@ export const MusicPlayer = () => {
 
   if (!currentSong) return null;
 
+  const ModeIcon = isLocalMode ? WifiOff : Youtube;
+  const ModeText = isLocalMode ? "Offline" : "Streaming (YouTube)";
+  const ModeColor = isLocalMode ? "bg-green-600 hover:bg-green-500" : "bg-red-600 hover:bg-red-500";
+
   return (
     <div ref={playerBarRef} className="fixed bottom-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md text-white p-3 border-t border-purple-800 z-50">
       {/* Elemento de áudio para reprodução offline/local - Adicionado playsInline e controls (oculto) */}
@@ -387,6 +393,23 @@ export const MusicPlayer = () => {
           <div className="min-w-0 flex-grow">
             <p className="font-semibold truncate text-xs lg:text-sm">{currentSong.title}</p>
             <p className="text-xs text-gray-400 truncate">{currentSong.artist}</p>
+            
+            {/* Indicador de Modo de Reprodução */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge 
+                  className={cn("mt-1 px-2 py-0.5 text-xs font-medium cursor-help", ModeColor)}
+                >
+                  <ModeIcon size={12} className="mr-1" /> {ModeText}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                {isLocalMode 
+                  ? "Reprodução garantida em segundo plano." 
+                  : "Reprodução via YouTube. Pode ser pausada pelo navegador ao minimizar o app. Baixe para Offline para garantir a continuidade."
+                }
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
